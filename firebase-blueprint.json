@@ -1,0 +1,135 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A registered user of the application.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "coach", "player", "guest"] }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Player": {
+      "title": "Player",
+      "description": "A player on the team.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "number": { "type": "number" },
+        "position": { "type": "string" },
+        "type": { "type": "string", "enum": ["goalie", "field"] },
+        "isCaptain": { "type": "boolean" },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "gamesPlayed": { "type": "number" },
+            "goals": { "type": "number" },
+            "assists": { "type": "number" },
+            "penaltyMinutes": { "type": "number" }
+          },
+          "required": ["gamesPlayed", "goals", "assists", "penaltyMinutes"]
+        }
+      },
+      "required": ["name", "number", "position", "type", "stats"]
+    },
+    "PlaybookItem": {
+      "title": "PlaybookItem",
+      "description": "A tactical play or strategy.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["Offensive", "Defensive"] },
+        "situation": { "type": "string" },
+        "description": { "type": "string" },
+        "steps": { "type": "array", "items": { "type": "string" } },
+        "advancedTactics": { "type": "string" }
+      },
+      "required": ["title", "type", "situation", "description", "steps"]
+    },
+    "TrainingPlan": {
+      "title": "TrainingPlan",
+      "description": "A scheduled training session plan.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "focus": { "type": "string" },
+        "pdfUrl": { "type": "string" }
+      },
+      "required": ["title", "date", "focus"]
+    },
+    "Termin": {
+      "title": "Termin",
+      "description": "A scheduled event, game, or training.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "location": { "type": "string" },
+        "type": { "type": "string", "enum": ["training", "game", "event"] },
+        "description": { "type": "string" }
+      },
+      "required": ["title", "date", "time", "location", "type"]
+    },
+    "CoachNews": {
+      "title": "CoachNews",
+      "description": "An announcement or news item from the coach.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "author": { "type": "string" },
+        "date": { "type": "string" }
+      },
+      "required": ["title", "content", "author", "date"]
+    },
+    "CampusArticle": {
+      "title": "CampusArticle",
+      "description": "An educational article for players.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "summary": { "type": "string" },
+        "content": { "type": "string" },
+        "iconType": { "type": "string", "enum": ["apple", "activity", "book"] },
+        "color": { "type": "string", "enum": ["green", "blue", "purple"] }
+      },
+      "required": ["title", "category", "summary", "content", "iconType", "color"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles and roles."
+    },
+    "/players/{playerId}": {
+      "schema": { "$ref": "#/entities/Player" },
+      "description": "Roster of players."
+    },
+    "/playbook/{playbookId}": {
+      "schema": { "$ref": "#/entities/PlaybookItem" },
+      "description": "Tactical playbook items."
+    },
+    "/trainingPlans/{planId}": {
+      "schema": { "$ref": "#/entities/TrainingPlan" },
+      "description": "Training plans."
+    },
+    "/termine/{terminId}": {
+      "schema": { "$ref": "#/entities/Termin" },
+      "description": "Schedule of events."
+    },
+    "/news/{newsId}": {
+      "schema": { "$ref": "#/entities/CoachNews" },
+      "description": "News announcements."
+    },
+    "/campus/{articleId}": {
+      "schema": { "$ref": "#/entities/CampusArticle" },
+      "description": "Campus educational articles."
+    }
+  }
+}

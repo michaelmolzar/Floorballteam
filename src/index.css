@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #0ea5e9;
+  --color-brand-dark: #0284c7;
+  --color-dark-bg: #0f172a;
+  --color-dark-card: #1e293b;
+}
+
+body {
+  @apply bg-dark-bg text-gray-200 font-sans antialiased min-h-screen flex flex-col;
+}
+
