@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Player, PlaybookItem, TrainingPlan, CampusArticle, Termin, CoachNews, AppUser } from '../types';
-import { Users, Calendar, Target, BookOpen, Plus, Edit2, Trash2, Save, X, Info, Image as ImageIcon, Megaphone, Database, Shield } from 'lucide-react';
+import { Users, Calendar, Target, BookOpen, Plus, Edit2, Trash2, Save, X, Info, Image as ImageIcon, Megaphone, Database, Shield, Upload } from 'lucide-react';
 import { doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
@@ -110,6 +110,91 @@ export default function Admin({
     const newTermin: Termin = { id: Date.now().toString(), title: 'Neuer Termin', date: new Date().toISOString().split('T')[0], time: '18:00', location: '', type: 'training', description: '' };
     await setDoc(doc(db, 'termine', newTermin.id), newTermin);
     handleEditTermin(newTermin);
+  };
+
+  const handleICSImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target?.result as string;
+      if (!text) return;
+
+      const unfoldedData = text.replace(/\r?\n /g, '');
+      const lines = unfoldedData.split(/\r?\n/);
+      
+      let currentEvent: any = null;
+      const parsedEvents: Termin[] = [];
+
+      for (const line of lines) {
+        if (line.startsWith('BEGIN:VEVENT')) {
+          currentEvent = {};
+        } else if (line.startsWith('END:VEVENT')) {
+          if (currentEvent && currentEvent.date && currentEvent.summary) {
+            let type: 'training' | 'game' | 'event' = 'event';
+            const lowerSummary = currentEvent.summary.toLowerCase();
+            if (lowerSummary.includes('training')) type = 'training';
+            else if (lowerSummary.includes('spiel') || lowerSummary.includes('match') || lowerSummary.includes('turnier')) type = 'game';
+
+            parsedEvents.push({
+              id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+              title: currentEvent.summary,
+              date: currentEvent.date,
+              time: currentEvent.time || '00:00',
+              location: currentEvent.location || '',
+              description: currentEvent.description || '',
+              type: type
+            });
+          }
+          currentEvent = null;
+        } else if (currentEvent) {
+          if (line.startsWith('SUMMARY:')) currentEvent.summary = line.substring(8);
+          else if (line.startsWith('LOCATION:')) currentEvent.location = line.substring(9);
+          else if (line.startsWith('DESCRIPTION:')) currentEvent.description = line.substring(12).replace(/\\n/g, '\n');
+          else if (line.startsWith('DTSTART')) {
+            const isUTC = line.endsWith('Z');
+            const match = line.match(/:(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);
+            if (match) {
+              const [_, y, m, d, h, min] = match;
+              if (isUTC) {
+                const dateObj = new Date(Date.UTC(parseInt(y), parseInt(m)-1, parseInt(d), parseInt(h), parseInt(min)));
+                currentEvent.date = dateObj.toLocaleDateString('en-CA');
+                currentEvent.time = dateObj.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+              } else {
+                currentEvent.date = `${y}-${m}-${d}`;
+                currentEvent.time = `${h}:${min}`;
+              }
+            } else {
+              const dateMatch = line.match(/:(\d{4})(\d{2})(\d{2})/);
+              if (dateMatch) {
+                const [_, y, m, d] = dateMatch;
+                currentEvent.date = `${y}-${m}-${d}`;
+                currentEvent.time = '00:00';
+              }
+            }
+          }
+        }
+      }
+
+      if (parsedEvents.length > 0) {
+        if (confirm(`${parsedEvents.length} Termine gefunden. Möchtest du diese importieren?`)) {
+          try {
+            for (const ev of parsedEvents) {
+              await setDoc(doc(db, 'termine', ev.id), ev);
+            }
+            alert('Import erfolgreich!');
+          } catch (err) {
+            console.error(err);
+            alert('Fehler beim Importieren.');
+          }
+        }
+      } else {
+        alert('Keine gültigen Termine in der Datei gefunden.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   // --- News Handlers ---
@@ -346,9 +431,15 @@ export default function Admin({
             <div className="bg-dark-card border border-gray-700 rounded-xl p-6 shadow-lg">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-white">Termine verwalten</h3>
-                <button onClick={handleAddTermin} className="bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center">
-                  <Plus size={16} className="mr-1" /> Neuer Termin
-                </button>
+                <div className="flex gap-2">
+                  <input type="file" accept=".ics" className="hidden" id="ics-upload" onChange={handleICSImport} />
+                  <label htmlFor="ics-upload" className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center cursor-pointer">
+                    <Upload size={16} className="mr-1" /> .ics Import
+                  </label>
+                  <button onClick={handleAddTermin} className="bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center">
+                    <Plus size={16} className="mr-1" /> Neuer Termin
+                  </button>
+                </div>
               </div>
               
               {editingTerminId ? (

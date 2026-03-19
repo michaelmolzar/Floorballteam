@@ -1,8 +1,8 @@
 import { Trophy, Timer, Megaphone, Calendar, MapPin, Bus, Send, X, BellRing } from 'lucide-react';
 import React, { useState } from 'react';
-import { CoachNews } from '../types';
+import { CoachNews, Termin } from '../types';
 
-export default function Dashboard({ setActiveTab, addNotification, news }: { setActiveTab: (tab: string) => void, addNotification: any, news: CoachNews[] }) {
+export default function Dashboard({ setActiveTab, addNotification, news, termine }: { setActiveTab: (tab: string) => void, addNotification: any, news: CoachNews[], termine: Termin[] }) {
   const [isPushModalOpen, setIsPushModalOpen] = useState(false);
   const [pushTitle, setPushTitle] = useState('');
   const [pushMsg, setPushMsg] = useState('');
@@ -18,6 +18,25 @@ export default function Dashboard({ setActiveTab, addNotification, news }: { set
   };
 
   const latestNews = news.length > 0 ? [...news].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0] : null;
+
+  const now = new Date();
+  
+  const upcomingTermine = [...termine].filter(t => {
+    const terminDate = new Date(`${t.date}T${t.time || '00:00'}`);
+    return terminDate >= now;
+  }).sort((a, b) => {
+    const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
+    const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
+    return dateA.getTime() - dateB.getTime();
+  });
+
+  const nextGame = upcomingTermine.find(t => t.type === 'game');
+  const nextTraining = upcomingTermine.find(t => t.type === 'training');
+
+  const formatDate = (dateStr: string, timeStr?: string) => {
+    const d = new Date(`${dateStr}T${timeStr || '00:00'}`);
+    return d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short' }) + (timeStr ? ` • ${timeStr} Uhr` : '');
+  };
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -40,12 +59,21 @@ export default function Dashboard({ setActiveTab, addNotification, news }: { set
           </div>
           <div className="relative z-10 text-white">
             <span className="text-xs font-bold uppercase tracking-wider bg-white/20 px-2 py-1 rounded">Nächstes Spiel</span>
-            <h3 className="text-2xl font-bold mt-4 mb-1">vs. Red Devils Wernigerode</h3>
-            <p className="text-white/80 mb-4 flex items-center"><Calendar className="mr-2" size={16} />Sa, 28. Okt • 14:00 Uhr</p>
-            <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
-              <p className="text-sm font-medium flex items-center"><MapPin className="mr-2" size={16} />Stadtsporthalle, Wernigerode</p>
-              <p className="text-sm mt-1 flex items-center"><Bus className="mr-2" size={16} />Treffpunkt: 11:30 Uhr Halle</p>
-            </div>
+            {nextGame ? (
+              <>
+                <h3 className="text-2xl font-bold mt-4 mb-1">{nextGame.title}</h3>
+                <p className="text-white/80 mb-4 flex items-center"><Calendar className="mr-2" size={16} />{formatDate(nextGame.date, nextGame.time)}</p>
+                <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+                  <p className="text-sm font-medium flex items-center"><MapPin className="mr-2" size={16} />{nextGame.location}</p>
+                  {nextGame.description && <p className="text-sm mt-1 flex items-center"><Bus className="mr-2" size={16} />{nextGame.description}</p>}
+                </div>
+              </>
+            ) : (
+              <div className="mt-4">
+                <h3 className="text-xl font-bold mb-1 text-white/70">Kein Spiel geplant</h3>
+                <p className="text-white/50 text-sm">Aktuell stehen keine Spiele an.</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -53,17 +81,25 @@ export default function Dashboard({ setActiveTab, addNotification, news }: { set
         <div className="bg-dark-card border border-gray-700 rounded-2xl p-6 shadow-lg">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center"><Timer className="text-brand mr-2" size={20} />Nächstes Training</h3>
           <div className="space-y-4">
-            <div className="border-l-4 border-brand pl-4">
-              <p className="text-sm text-gray-400">Dienstag, 18:30 - 20:00</p>
-              <p className="font-medium text-white text-lg">Halle Mitte</p>
-              <p className="text-sm text-brand mt-1">Fokus: Auslösung gegen hohes Pressing</p>
-            </div>
-            <button 
-              onClick={() => setActiveTab('taktik')}
-              className="w-full bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg text-sm transition-colors border border-gray-600"
-            >
-              Trainingsplan ansehen
-            </button>
+            {nextTraining ? (
+              <>
+                <div className="border-l-4 border-brand pl-4">
+                  <p className="text-sm text-gray-400">{formatDate(nextTraining.date, nextTraining.time)}</p>
+                  <p className="font-medium text-white text-lg">{nextTraining.location}</p>
+                  {nextTraining.description && <p className="text-sm text-brand mt-1">{nextTraining.description}</p>}
+                </div>
+                <button 
+                  onClick={() => setActiveTab('taktik')}
+                  className="w-full bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg text-sm transition-colors border border-gray-600"
+                >
+                  Trainingsplan ansehen
+                </button>
+              </>
+            ) : (
+              <div className="border-l-4 border-gray-600 pl-4 py-2">
+                <p className="text-gray-400">Kein Training geplant</p>
+              </div>
+            )}
           </div>
         </div>
 

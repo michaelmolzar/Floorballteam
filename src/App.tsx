@@ -299,7 +299,7 @@ export default function App() {
 
       {/* Main Content */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-        {activeTab === 'dashboard' && <Dashboard setActiveTab={setActiveTab} addNotification={addNotification} news={news} />}
+        {activeTab === 'dashboard' && <Dashboard setActiveTab={setActiveTab} addNotification={addNotification} news={news} termine={termine} />}
         {activeTab === 'team' && <Team players={players} setPlayers={setPlayers} />}
         {activeTab === 'termine' && <Termine termine={termine} />}
         {activeTab === 'taktik' && <Taktik playbookItems={playbookItems} trainingPlans={trainingPlans} />}
