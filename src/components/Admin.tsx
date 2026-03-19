@@ -122,7 +122,7 @@ export default function Admin({
     setIcsError('');
     try {
       // Using a CORS proxy since iCal feeds usually don't have CORS headers
-      const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(icsUrl));
+      const res = await fetch('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(icsUrl));
       if (!res.ok) throw new Error('Fehler beim Abrufen der URL');
       const text = await res.text();
 
