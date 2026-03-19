@@ -55,6 +55,10 @@ export default function Admin({
   // Termin Edit State
   const [editingTerminId, setEditingTerminId] = useState<string | null>(null);
   const [terminForm, setTerminForm] = useState<Partial<Termin>>({});
+  const [icsModalState, setIcsModalState] = useState<'closed' | 'input' | 'confirm' | 'loading' | 'success' | 'error'>('closed');
+  const [icsUrl, setIcsUrl] = useState('');
+  const [parsedIcsEvents, setParsedIcsEvents] = useState<Termin[]>([]);
+  const [icsError, setIcsError] = useState('');
 
   // News Edit State
   const [editingNewsId, setEditingNewsId] = useState<string | null>(null);
@@ -112,14 +116,15 @@ export default function Admin({
     handleEditTermin(newTermin);
   };
 
-  const handleICSImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const text = event.target?.result as string;
-      if (!text) return;
+  const fetchAndParseIcsUrl = async () => {
+    if (!icsUrl) return;
+    setIcsModalState('loading');
+    setIcsError('');
+    try {
+      // Using a CORS proxy since iCal feeds usually don't have CORS headers
+      const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(icsUrl));
+      if (!res.ok) throw new Error('Fehler beim Abrufen der URL');
+      const text = await res.text();
 
       const unfoldedData = text.replace(/\r?\n /g, '');
       const lines = unfoldedData.split(/\r?\n/);
@@ -178,23 +183,31 @@ export default function Admin({
       }
 
       if (parsedEvents.length > 0) {
-        if (confirm(`${parsedEvents.length} Termine gefunden. Möchtest du diese importieren?`)) {
-          try {
-            for (const ev of parsedEvents) {
-              await setDoc(doc(db, 'termine', ev.id), ev);
-            }
-            alert('Import erfolgreich!');
-          } catch (err) {
-            console.error(err);
-            alert('Fehler beim Importieren.');
-          }
-        }
+        setParsedIcsEvents(parsedEvents);
+        setIcsModalState('confirm');
       } else {
-        alert('Keine gültigen Termine in der Datei gefunden.');
+        setIcsError('Keine gültigen Termine in der Datei gefunden.');
+        setIcsModalState('error');
       }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
+    } catch (err: any) {
+      console.error(err);
+      setIcsError(err.message || 'Fehler beim Importieren.');
+      setIcsModalState('error');
+    }
+  };
+
+  const confirmIcsImport = async () => {
+    setIcsModalState('loading');
+    try {
+      for (const ev of parsedIcsEvents) {
+        await setDoc(doc(db, 'termine', ev.id), ev);
+      }
+      setIcsModalState('success');
+    } catch (err: any) {
+      console.error(err);
+      setIcsError('Fehler beim Speichern der Termine.');
+      setIcsModalState('error');
+    }
   };
 
   // --- News Handlers ---
@@ -432,10 +445,9 @@ export default function Admin({
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-white">Termine verwalten</h3>
                 <div className="flex gap-2">
-                  <input type="file" accept=".ics" className="hidden" id="ics-upload" onChange={handleICSImport} />
-                  <label htmlFor="ics-upload" className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center cursor-pointer">
-                    <Upload size={16} className="mr-1" /> .ics Import
-                  </label>
+                  <button onClick={() => setIcsModalState('input')} className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center cursor-pointer">
+                    <Upload size={16} className="mr-1" /> iCal URL Import
+                  </button>
                   <button onClick={handleAddTermin} className="bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center">
                     <Plus size={16} className="mr-1" /> Neuer Termin
                   </button>
@@ -979,6 +991,86 @@ export default function Admin({
 
         </div>
       </div>
+
+      {/* ICS Import Modal */}
+      {icsModalState !== 'closed' && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-dark-card border border-gray-700 rounded-2xl p-6 max-w-md w-full shadow-2xl relative">
+            <button onClick={() => setIcsModalState('closed')} className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+              <X size={24} />
+            </button>
+            <h3 className="text-xl font-bold text-white mb-4">iCal Import (SpielerPlus)</h3>
+            
+            {icsModalState === 'input' && (
+              <div>
+                <p className="text-sm text-gray-400 mb-4">
+                  Füge hier den iCal-Link (URL) aus der SpielerPlus App ein. Die App wird die Termine automatisch herunterladen und importieren.
+                </p>
+                <input 
+                  type="url" 
+                  placeholder="https://www.spielerplus.de/ical/..." 
+                  value={icsUrl} 
+                  onChange={(e) => setIcsUrl(e.target.value)} 
+                  className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-brand outline-none mb-4"
+                />
+                <button 
+                  onClick={fetchAndParseIcsUrl} 
+                  disabled={!icsUrl}
+                  className="w-full bg-brand hover:bg-brand-dark disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold transition-colors"
+                >
+                  Termine abrufen
+                </button>
+              </div>
+            )}
+
+            {icsModalState === 'loading' && (
+              <div className="py-8 text-center">
+                <div className="w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-300">Bitte warten...</p>
+              </div>
+            )}
+
+            {icsModalState === 'confirm' && (
+              <div>
+                <div className="bg-brand/20 border border-brand/30 rounded-lg p-4 mb-6 text-center">
+                  <p className="text-3xl font-bold text-white mb-1">{parsedIcsEvents.length}</p>
+                  <p className="text-sm text-brand font-medium">Termine gefunden</p>
+                </div>
+                <p className="text-sm text-gray-300 mb-6 text-center">
+                  Möchtest du diese Termine jetzt in deinen Kalender importieren?
+                </p>
+                <div className="flex gap-3">
+                  <button onClick={() => setIcsModalState('closed')} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-bold transition-colors">Abbrechen</button>
+                  <button onClick={confirmIcsImport} className="flex-1 bg-brand hover:bg-brand-dark text-white py-3 rounded-lg font-bold transition-colors">Importieren</button>
+                </div>
+              </div>
+            )}
+
+            {icsModalState === 'success' && (
+              <div className="text-center py-4">
+                <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Calendar size={32} />
+                </div>
+                <h4 className="text-xl font-bold text-white mb-2">Import erfolgreich!</h4>
+                <p className="text-gray-400 mb-6">Die Termine wurden in die Datenbank eingetragen.</p>
+                <button onClick={() => setIcsModalState('closed')} className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-bold transition-colors">Schließen</button>
+              </div>
+            )}
+
+            {icsModalState === 'error' && (
+              <div className="text-center py-4">
+                <div className="w-16 h-16 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <X size={32} />
+                </div>
+                <h4 className="text-xl font-bold text-white mb-2">Fehler beim Import</h4>
+                <p className="text-gray-400 mb-6">{icsError}</p>
+                <button onClick={() => setIcsModalState('input')} className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-bold transition-colors">Erneut versuchen</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
