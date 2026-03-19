@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Player, PlaybookItem, TrainingPlan, CampusArticle, Termin, CoachNews, AppUser } from '../types';
-import { Users, Calendar, Target, BookOpen, Plus, Edit2, Trash2, Save, X, Info, Image as ImageIcon, Megaphone, Database, Shield, Upload } from 'lucide-react';
+import { Users, Calendar, Target, BookOpen, Plus, Edit2, Trash2, Save, X, Info, Image as ImageIcon, Megaphone, Database, Shield, Upload, FileText } from 'lucide-react';
 import { doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
@@ -139,8 +139,23 @@ export default function Admin({
           if (currentEvent && currentEvent.date && currentEvent.summary) {
             let type: 'training' | 'game' | 'event' = 'event';
             const lowerSummary = currentEvent.summary.toLowerCase();
-            if (lowerSummary.includes('training')) type = 'training';
-            else if (lowerSummary.includes('spiel') || lowerSummary.includes('match') || lowerSummary.includes('turnier')) type = 'game';
+            const lowerUid = (currentEvent.uid || '').toLowerCase();
+            
+            if (lowerUid.startsWith('training') || lowerSummary.includes('training')) {
+              type = 'training';
+            } else if (
+              lowerUid.startsWith('game') || 
+              lowerUid.startsWith('tournament') || 
+              lowerUid.startsWith('event') || 
+              lowerSummary.includes('spiel') || 
+              lowerSummary.includes('match') || 
+              lowerSummary.includes('turnier') || 
+              lowerSummary.includes('event')
+            ) {
+              type = 'game';
+            } else {
+              type = 'game'; // Default to game for unknown types as requested
+            }
 
             parsedEvents.push({
               id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
@@ -154,7 +169,8 @@ export default function Admin({
           }
           currentEvent = null;
         } else if (currentEvent) {
-          if (line.startsWith('SUMMARY:')) currentEvent.summary = line.substring(8);
+          if (line.startsWith('UID:')) currentEvent.uid = line.substring(4);
+          else if (line.startsWith('SUMMARY:')) currentEvent.summary = line.substring(8);
           else if (line.startsWith('LOCATION:')) currentEvent.location = line.substring(9);
           else if (line.startsWith('DESCRIPTION:')) currentEvent.description = line.substring(12).replace(/\\n/g, '\n');
           else if (line.startsWith('DTSTART')) {
@@ -247,8 +263,8 @@ export default function Admin({
     const file = e.target.files?.[0];
     if (!file || !editingPlaybookId) return;
     
-    if (!file.type.startsWith('image/') && file.type !== 'image/svg+xml') {
-      alert('Bitte nur Bilder (JPG, PNG, SVG) hochladen.');
+    if (!file.type.startsWith('image/') && file.type !== 'image/svg+xml' && file.type !== 'application/pdf') {
+      alert('Bitte nur Bilder (JPG, PNG, SVG) oder PDFs hochladen.');
       return;
     }
 
@@ -259,8 +275,8 @@ export default function Admin({
       const downloadUrl = await getDownloadURL(storageRef);
       setPlaybookForm({ ...playbookForm, imageUrl: downloadUrl });
     } catch (error) {
-      console.error('Error uploading image:', error);
-      alert('Fehler beim Hochladen des Bildes.');
+      console.error('Error uploading file:', error);
+      alert('Fehler beim Hochladen der Datei.');
     } finally {
       setUploadingPlaybookImage(false);
     }
@@ -268,9 +284,8 @@ export default function Admin({
   const handleDeletePlaybook = async (id: string) => {
     if (confirm('Spielzug wirklich löschen?')) await deleteDoc(doc(db, 'playbook', id));
   };
-  const handleAddPlaybook = async () => {
-    const newItem: PlaybookItem = { id: Date.now().toString(), title: 'Neuer Spielzug', type: 'Offensive', situation: '', description: '', steps: ['Schritt 1'] };
-    await setDoc(doc(db, 'playbook', newItem.id), newItem);
+  const handleAddPlaybook = () => {
+    const newItem: PlaybookItem = { id: 'new', title: 'Neuer Spielzug', type: 'Offensive', situation: '', description: '', steps: ['Schritt 1'] };
     handleEditPlaybook(newItem);
   };
 
@@ -598,25 +613,33 @@ export default function Admin({
                           />
                         </div>
                         <div className="md:col-span-2">
-                          <label className="block text-xs text-gray-400 mb-1">Taktiktafel Bild/SVG</label>
+                          <label className="block text-xs text-gray-400 mb-1">Taktiktafel Bild/SVG/PDF</label>
                           <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-700/50 cursor-pointer transition-colors relative">
                             {uploadingPlaybookImage ? (
                               <span className="text-sm">Wird hochgeladen...</span>
                             ) : playbookForm.imageUrl ? (
                               <div className="flex flex-col items-center gap-2">
-                                <img src={playbookForm.imageUrl} alt="Playbook" className="max-h-32 rounded object-contain" />
+                                {playbookForm.imageUrl.toLowerCase().includes('.pdf') || playbookForm.imageUrl.toLowerCase().includes('%2fpdf') ? (
+                                  <div className="flex flex-col items-center p-4 bg-gray-800 rounded">
+                                    <FileText size={48} className="text-red-400 mb-2" />
+                                    <span className="text-sm text-white">PDF Dokument hochgeladen</span>
+                                    <a href={playbookForm.imageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline mt-1">Vorschau öffnen</a>
+                                  </div>
+                                ) : (
+                                  <img src={playbookForm.imageUrl} alt="Playbook" className="max-h-32 rounded object-contain" />
+                                )}
                                 <div className="flex items-center gap-2 mt-2">
-                                  <span className="text-sm text-green-400">Bild erfolgreich hochgeladen</span>
+                                  <span className="text-sm text-green-400">Datei erfolgreich hochgeladen</span>
                                   <button onClick={() => setPlaybookForm({ ...playbookForm, imageUrl: undefined })} className="text-red-400 hover:text-red-300 ml-2">Entfernen</button>
                                 </div>
                               </div>
                             ) : (
                               <>
                                 <ImageIcon size={24} className="mb-2" />
-                                <span className="text-sm">Klicken zum Hochladen (JPG, PNG, SVG)</span>
+                                <span className="text-sm">Klicken zum Hochladen (JPG, PNG, SVG, PDF)</span>
                                 <input 
                                   type="file" 
-                                  accept="image/*,.svg" 
+                                  accept="image/*,.svg,.pdf" 
                                   onChange={handlePlaybookImageUpload} 
                                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
                                 />
