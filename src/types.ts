@@ -23,7 +23,7 @@ export type Notification = {
   message: string;
   date: string;
   type: 'info' | 'alert' | 'event';
-  read: boolean;
+  readBy: string[];
 };
 
 export type PlaybookItem = {

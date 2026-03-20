@@ -21,7 +21,7 @@ export default function Campus({ articles }: { articles: CampusArticle[] }) {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center max-w-2xl mx-auto mb-10">
         <h2 className="text-3xl font-bold text-white mb-4">Floorball Campus</h2>
-        <p className="text-gray-400">Hier findet ihr alles, was euch neben dem Spielfeld besser macht. Ernährung, Mental-Tipps und Regelkunde für die U17.</p>
+        <p className="text-gray-400">Hier findet ihr alles, was euch neben dem Spielfeld besser macht. Ernährung, Mental-Tipps und Regelkunde.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

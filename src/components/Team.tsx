@@ -56,7 +56,7 @@ export default function Team({ players, setPlayers }: { players: Player[], setPl
 
       {/* Roster Section */}
       <div>
-        <h2 className="text-2xl font-bold text-white mb-6 border-b border-gray-700 pb-2">Kader U17</h2>
+        <h2 className="text-2xl font-bold text-white mb-6 border-b border-gray-700 pb-2">Kader</h2>
         
         {/* Goalies */}
         <h3 className="text-lg font-semibold text-brand mb-4">Goalies</h3>

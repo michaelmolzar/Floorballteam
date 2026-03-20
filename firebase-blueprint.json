@@ -100,6 +100,19 @@
         "color": { "type": "string", "enum": ["green", "blue", "purple"] }
       },
       "required": ["title", "category", "summary", "content", "iconType", "color"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "An in-app notification.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "date": { "type": "string" },
+        "type": { "type": "string", "enum": ["info", "alert", "event"] },
+        "readBy": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["title", "message", "date", "type", "readBy"]
     }
   },
   "firestore": {
@@ -130,6 +143,10 @@
     "/campus/{articleId}": {
       "schema": { "$ref": "#/entities/CampusArticle" },
       "description": "Campus educational articles."
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/Notification" },
+      "description": "Global notifications for users."
     }
   }
 }

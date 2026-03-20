@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, Bell, ShieldAlert, LogIn, LogOut } from 'lucide-react';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User as FirebaseUser } from 'firebase/auth';
-import { collection, onSnapshot, doc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import Dashboard from './components/Dashboard';
 import Team from './components/Team';
@@ -27,9 +27,7 @@ export default function App() {
   const [news, setNews] = useState<CoachNews[]>([]);
   const [appUsers, setAppUsers] = useState<AppUser[]>([]);
   
-  const [notifications, setNotifications] = useState<Notification[]>([
-    { id: '1', title: 'Willkommen', message: 'Willkommen im neuen Team-Portal!', date: new Date().toISOString(), type: 'info', read: false }
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   useEffect(() => {
@@ -72,12 +70,16 @@ export default function App() {
     const unsubNews = onSnapshot(collection(db, 'news'), (snapshot) => {
       setNews(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CoachNews)));
     });
+    const unsubNotifications = onSnapshot(collection(db, 'notifications'), (snapshot) => {
+      setNotifications(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    });
 
     return () => {
       unsubPlayers();
       unsubCampus();
       unsubTermine();
       unsubNews();
+      unsubNotifications();
     };
   }, []);
 
@@ -123,15 +125,28 @@ export default function App() {
     signOut(auth);
   };
 
-  const addNotification = (notif: Omit<Notification, 'id' | 'date' | 'read'>) => {
-    setNotifications([{ ...notif, id: Date.now().toString(), date: new Date().toISOString(), read: false }, ...notifications]);
+  const addNotification = async (notif: Omit<Notification, 'id' | 'date' | 'readBy'>) => {
+    try {
+      const newId = Date.now().toString();
+      const newNotif: Notification = { ...notif, id: newId, date: new Date().toISOString(), readBy: [] };
+      await setDoc(doc(db, 'notifications', newId), newNotif);
+    } catch (error) {
+      console.error("Error adding notification:", error);
+    }
   };
 
-  const markAsRead = (id: string) => {
-    setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
+  const markAsRead = async (id: string) => {
+    if (!user) return;
+    try {
+      await updateDoc(doc(db, 'notifications', id), {
+        readBy: arrayUnion(user.uid)
+      });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = user ? notifications.filter(n => !(n.readBy || []).includes(user.uid)).length : 0;
 
   const tabs: { id: string; label: string; icon?: React.ReactNode }[] = [
     { id: 'dashboard', label: 'Dashboard' },
@@ -162,7 +177,7 @@ export default function App() {
               <img src="/logo.png" alt="Floorballbunnies Logo" className="h-12 w-auto object-contain" onError={(e) => { e.currentTarget.src = '/logo.svg' }} />
               <div>
                 <h1 className="text-xl font-bold text-white tracking-tight">Floorballbunnies</h1>
-                <p className="text-xs text-brand uppercase font-semibold">U17 Team Portal</p>
+                <p className="text-xs text-brand uppercase font-semibold">Team Portal</p>
               </div>
             </div>
 
@@ -215,7 +230,7 @@ export default function App() {
                           <div 
                             key={n.id} 
                             onClick={() => markAsRead(n.id)} 
-                            className={`p-3 border-b border-gray-700/50 cursor-pointer transition-colors ${n.read ? 'opacity-60' : 'bg-brand/5 hover:bg-brand/10'}`}
+                            className={`p-3 border-b border-gray-700/50 cursor-pointer transition-colors ${(user && (n.readBy || []).includes(user.uid)) ? 'opacity-60' : 'bg-brand/5 hover:bg-brand/10'}`}
                           >
                             <div className="flex justify-between items-start mb-1">
                               <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
@@ -297,7 +312,7 @@ export default function App() {
 
       {/* Main Content */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-        {activeTab === 'dashboard' && <Dashboard setActiveTab={setActiveTab} addNotification={addNotification} news={news} termine={termine} />}
+        {activeTab === 'dashboard' && <Dashboard setActiveTab={setActiveTab} addNotification={addNotification} news={news} termine={termine} userRole={userRole} />}
         {activeTab === 'team' && <Team players={players} setPlayers={setPlayers} />}
         {activeTab === 'termine' && <Termine termine={termine} />}
         {activeTab === 'taktik' && <Taktik playbookItems={playbookItems} trainingPlans={trainingPlans} />}
@@ -319,7 +334,7 @@ export default function App() {
       {/* Footer */}
       <footer className="bg-dark-card border-t border-gray-800 py-6 mt-auto">
         <div className="max-w-6xl mx-auto px-4 text-center text-sm text-gray-500">
-          <p>&copy; 2026 Floorballbunnies U17. Interner Bereich.</p>
+          <p>&copy; 2026 Floorballbunnies. Interner Bereich.</p>
           <p className="mt-2">Erstellt für den besten Coach der Liga.</p>
         </div>
       </footer>

@@ -2,7 +2,7 @@ import { Trophy, Timer, Megaphone, Calendar, MapPin, Bus, Send, X, BellRing } fr
 import React, { useState } from 'react';
 import { CoachNews, Termin } from '../types';
 
-export default function Dashboard({ setActiveTab, addNotification, news, termine }: { setActiveTab: (tab: string) => void, addNotification: any, news: CoachNews[], termine: Termin[] }) {
+export default function Dashboard({ setActiveTab, addNotification, news, termine, userRole }: { setActiveTab: (tab: string) => void, addNotification: any, news: CoachNews[], termine: Termin[], userRole: string | null }) {
   const [isPushModalOpen, setIsPushModalOpen] = useState(false);
   const [pushTitle, setPushTitle] = useState('');
   const [pushMsg, setPushMsg] = useState('');
@@ -41,14 +41,16 @@ export default function Dashboard({ setActiveTab, addNotification, news, termine
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h2 className="text-3xl font-bold text-white">Willkommen zurück, Coach!</h2>
-        <button 
-          onClick={() => setIsPushModalOpen(true)}
-          className="bg-brand hover:bg-brand-dark text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center shadow-lg shadow-brand/20"
-        >
-          <BellRing size={16} className="mr-2" />
-          Push-Nachricht senden
-        </button>
+        <h2 className="text-3xl font-bold text-white">Willkommen zurück!</h2>
+        {(userRole === 'admin' || userRole === 'coach') && (
+          <button 
+            onClick={() => setIsPushModalOpen(true)}
+            className="bg-brand hover:bg-brand-dark text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center shadow-lg shadow-brand/20"
+          >
+            <BellRing size={16} className="mr-2" />
+            Push-Nachricht senden
+          </button>
+        )}
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

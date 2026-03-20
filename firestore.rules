@@ -90,5 +90,13 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isCoach();
     }
+
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated();
+      allow create: if isCoach();
+      allow update: if isAuthenticated() && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']);
+      allow delete: if isCoach();
+    }
   }
 }
