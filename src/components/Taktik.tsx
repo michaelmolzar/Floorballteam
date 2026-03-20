@@ -152,7 +152,7 @@ export default function Taktik({ playbookItems, trainingPlans }: { playbookItems
                 <div className="space-y-4">
                   <h4 className="font-bold text-white text-lg border-b border-gray-700 pb-2">Ablauf:</h4>
                   <ol className="list-decimal list-inside text-gray-300 space-y-2 text-sm leading-relaxed">
-                    {selectedPlaybook.steps.map((step, idx) => (
+                    {selectedPlaybook.steps?.map((step, idx) => (
                       <li key={idx} dangerouslySetInnerHTML={{ __html: step.replace(/D1|D2|W1|W2/g, '<strong class="text-brand">$&</strong>').replace(/Center \(C\)|Center/g, '<strong class="text-yellow-500">$&</strong>') }} />
                     ))}
                   </ol>

@@ -28,6 +28,21 @@ export default function Admin({
   const [adminTab, setAdminTab] = useState('spieler');
   const [isSeeding, setIsSeeding] = useState(false);
 
+  const cleanUndefined = (obj: any): any => {
+    if (Array.isArray(obj)) {
+      return obj.map(cleanUndefined);
+    } else if (obj !== null && typeof obj === 'object') {
+      const cleaned: any = {};
+      Object.keys(obj).forEach(key => {
+        if (obj[key] !== undefined) {
+          cleaned[key] = cleanUndefined(obj[key]);
+        }
+      });
+      return cleaned;
+    }
+    return obj;
+  };
+
   const handleSeedDatabase = async () => {
     if (!confirm('Möchtest du die Datenbank wirklich mit Beispieldaten füllen? Dies überschreibt keine vorhandenen Daten mit gleicher ID, fügt aber neue hinzu.')) return;
     
@@ -86,34 +101,68 @@ export default function Admin({
   const handleEditPlayer = (player: Player) => { setEditingPlayerId(player.id); setEditForm(player); };
   const handleSavePlayer = async () => {
     if (!editingPlayerId) return;
-    const updatedPlayer = { ...players.find(p => p.id === editingPlayerId), ...editForm } as Player;
-    await setDoc(doc(db, 'players', editingPlayerId), updatedPlayer);
-    setEditingPlayerId(null);
+    try {
+      const updatedPlayer = cleanUndefined({ ...players.find(p => p.id === editingPlayerId), ...editForm }) as Player;
+      await setDoc(doc(db, 'players', editingPlayerId), updatedPlayer);
+      setEditingPlayerId(null);
+    } catch (error) {
+      console.error("Error saving player:", error);
+      alert("Fehler beim Speichern des Spielers: " + (error instanceof Error ? error.message : String(error)));
+    }
   };
   const handleDeletePlayer = async (id: string) => {
-    if (confirm('Spieler wirklich löschen?')) await deleteDoc(doc(db, 'players', id));
+    if (confirm('Spieler wirklich löschen?')) {
+      try {
+        await deleteDoc(doc(db, 'players', id));
+      } catch (error) {
+        console.error("Error deleting player:", error);
+        alert("Fehler beim Löschen des Spielers: " + (error instanceof Error ? error.message : String(error)));
+      }
+    }
   };
   const handleAddPlayer = async () => {
-    const newPlayer: Player = { id: Date.now().toString(), name: 'Neuer Spieler', number: 0, position: 'Position', type: 'field', stats: { gamesPlayed: 0, goals: 0, assists: 0, penaltyMinutes: 0 } };
-    await setDoc(doc(db, 'players', newPlayer.id), newPlayer);
-    handleEditPlayer(newPlayer);
+    try {
+      const newPlayer: Player = { id: Date.now().toString(), name: 'Neuer Spieler', number: 0, position: 'Position', type: 'field', stats: { gamesPlayed: 0, goals: 0, assists: 0, penaltyMinutes: 0 } };
+      await setDoc(doc(db, 'players', newPlayer.id), newPlayer);
+      handleEditPlayer(newPlayer);
+    } catch (error) {
+      console.error("Error adding player:", error);
+      alert("Fehler beim Hinzufügen des Spielers: " + (error instanceof Error ? error.message : String(error)));
+    }
   };
 
   // --- Termin Handlers ---
   const handleEditTermin = (termin: Termin) => { setEditingTerminId(termin.id); setTerminForm(termin); };
   const handleSaveTermin = async () => {
     if (!editingTerminId) return;
-    const updatedTermin = { ...termine.find(t => t.id === editingTerminId), ...terminForm } as Termin;
-    await setDoc(doc(db, 'termine', editingTerminId), updatedTermin);
-    setEditingTerminId(null);
+    try {
+      const updatedTermin = cleanUndefined({ ...termine.find(t => t.id === editingTerminId), ...terminForm }) as Termin;
+      await setDoc(doc(db, 'termine', editingTerminId), updatedTermin);
+      setEditingTerminId(null);
+    } catch (error) {
+      console.error("Error saving termin:", error);
+      alert("Fehler beim Speichern des Termins: " + (error instanceof Error ? error.message : String(error)));
+    }
   };
   const handleDeleteTermin = async (id: string) => {
-    if (confirm('Termin wirklich löschen?')) await deleteDoc(doc(db, 'termine', id));
+    if (confirm('Termin wirklich löschen?')) {
+      try {
+        await deleteDoc(doc(db, 'termine', id));
+      } catch (error) {
+        console.error("Error deleting termin:", error);
+        alert("Fehler beim Löschen des Termins: " + (error instanceof Error ? error.message : String(error)));
+      }
+    }
   };
   const handleAddTermin = async () => {
-    const newTermin: Termin = { id: Date.now().toString(), title: 'Neuer Termin', date: new Date().toISOString().split('T')[0], time: '18:00', location: '', type: 'training', description: '' };
-    await setDoc(doc(db, 'termine', newTermin.id), newTermin);
-    handleEditTermin(newTermin);
+    try {
+      const newTermin: Termin = { id: Date.now().toString(), title: 'Neuer Termin', date: new Date().toISOString().split('T')[0], time: '18:00', location: '', type: 'training', description: '' };
+      await setDoc(doc(db, 'termine', newTermin.id), newTermin);
+      handleEditTermin(newTermin);
+    } catch (error) {
+      console.error("Error adding termin:", error);
+      alert("Fehler beim Hinzufügen des Termins: " + (error instanceof Error ? error.message : String(error)));
+    }
   };
 
   const fetchAndParseIcsUrl = async () => {
@@ -230,17 +279,34 @@ export default function Admin({
   const handleEditNews = (n: CoachNews) => { setEditingNewsId(n.id); setNewsForm(n); };
   const handleSaveNews = async () => {
     if (!editingNewsId) return;
-    const updatedNews = { ...news.find(n => n.id === editingNewsId), ...newsForm } as CoachNews;
-    await setDoc(doc(db, 'news', editingNewsId), updatedNews);
-    setEditingNewsId(null);
+    try {
+      const updatedNews = cleanUndefined({ ...news.find(n => n.id === editingNewsId), ...newsForm }) as CoachNews;
+      await setDoc(doc(db, 'news', editingNewsId), updatedNews);
+      setEditingNewsId(null);
+    } catch (error) {
+      console.error("Error saving news:", error);
+      alert("Fehler beim Speichern der News: " + (error instanceof Error ? error.message : String(error)));
+    }
   };
   const handleDeleteNews = async (id: string) => {
-    if (confirm('News wirklich löschen?')) await deleteDoc(doc(db, 'news', id));
+    if (confirm('News wirklich löschen?')) {
+      try {
+        await deleteDoc(doc(db, 'news', id));
+      } catch (error) {
+        console.error("Error deleting news:", error);
+        alert("Fehler beim Löschen der News: " + (error instanceof Error ? error.message : String(error)));
+      }
+    }
   };
   const handleAddNews = async () => {
-    const newN: CoachNews = { id: Date.now().toString(), title: 'Neue Ankündigung', content: '', author: 'Coach', date: new Date().toISOString() };
-    await setDoc(doc(db, 'news', newN.id), newN);
-    handleEditNews(newN);
+    try {
+      const newN: CoachNews = { id: Date.now().toString(), title: 'Neue Ankündigung', content: '', author: 'Coach', date: new Date().toISOString() };
+      await setDoc(doc(db, 'news', newN.id), newN);
+      handleEditNews(newN);
+    } catch (error) {
+      console.error("Error adding news:", error);
+      alert("Fehler beim Hinzufügen der News: " + (error instanceof Error ? error.message : String(error)));
+    }
   };
 
   // --- Playbook Handlers ---
@@ -248,15 +314,20 @@ export default function Admin({
   const handleSavePlaybook = async () => {
     if (!editingPlaybookId) return;
     
-    if (editingPlaybookId === 'new') {
-      const newId = Date.now().toString();
-      const newPlaybook = { ...playbookForm, id: newId } as PlaybookItem;
-      await setDoc(doc(db, 'playbook', newId), newPlaybook);
-    } else {
-      const updatedPlaybook = { ...playbookItems.find(p => p.id === editingPlaybookId), ...playbookForm } as PlaybookItem;
-      await setDoc(doc(db, 'playbook', editingPlaybookId), updatedPlaybook);
+    try {
+      if (editingPlaybookId === 'new') {
+        const newId = Date.now().toString();
+        const newPlaybook = cleanUndefined({ ...playbookForm, id: newId }) as PlaybookItem;
+        await setDoc(doc(db, 'playbook', newId), newPlaybook);
+      } else {
+        const updatedPlaybook = cleanUndefined({ ...playbookItems.find(p => p.id === editingPlaybookId), ...playbookForm }) as PlaybookItem;
+        await setDoc(doc(db, 'playbook', editingPlaybookId), updatedPlaybook);
+      }
+      setEditingPlaybookId(null);
+    } catch (error) {
+      console.error("Error saving playbook:", error);
+      alert("Fehler beim Speichern des Spielzugs: " + (error instanceof Error ? error.message : String(error)));
     }
-    setEditingPlaybookId(null);
   };
 
   const handlePlaybookImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -276,13 +347,20 @@ export default function Admin({
       setPlaybookForm({ ...playbookForm, imageUrl: downloadUrl });
     } catch (error) {
       console.error('Error uploading file:', error);
-      alert('Fehler beim Hochladen der Datei.');
+      alert('Fehler beim Hochladen der Datei: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       setUploadingPlaybookImage(false);
     }
   };
   const handleDeletePlaybook = async (id: string) => {
-    if (confirm('Spielzug wirklich löschen?')) await deleteDoc(doc(db, 'playbook', id));
+    if (confirm('Spielzug wirklich löschen?')) {
+      try {
+        await deleteDoc(doc(db, 'playbook', id));
+      } catch (error) {
+        console.error("Error deleting playbook:", error);
+        alert("Fehler beim Löschen des Spielzugs: " + (error instanceof Error ? error.message : String(error)));
+      }
+    }
   };
   const handleAddPlaybook = () => {
     const newItem: PlaybookItem = { id: 'new', title: 'Neuer Spielzug', type: 'Offensive', situation: '', description: '', steps: ['Schritt 1'] };
@@ -293,9 +371,14 @@ export default function Admin({
   const handleEditTraining = (plan: TrainingPlan) => { setEditingTrainingId(plan.id); setTrainingForm(plan); };
   const handleSaveTraining = async () => {
     if (!editingTrainingId) return;
-    const updatedTraining = { ...trainingPlans.find(p => p.id === editingTrainingId), ...trainingForm } as TrainingPlan;
-    await setDoc(doc(db, 'trainingPlans', editingTrainingId), updatedTraining);
-    setEditingTrainingId(null);
+    try {
+      const updatedTraining = cleanUndefined({ ...trainingPlans.find(p => p.id === editingTrainingId), ...trainingForm }) as TrainingPlan;
+      await setDoc(doc(db, 'trainingPlans', editingTrainingId), updatedTraining);
+      setEditingTrainingId(null);
+    } catch (error) {
+      console.error("Error saving training:", error);
+      alert("Fehler beim Speichern des Trainingsplans: " + (error instanceof Error ? error.message : String(error)));
+    }
   };
   
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -315,35 +398,64 @@ export default function Admin({
       setTrainingForm({ ...trainingForm, pdfUrl: downloadUrl });
     } catch (error) {
       console.error('Error uploading PDF:', error);
-      alert('Fehler beim Hochladen der PDF.');
+      alert('Fehler beim Hochladen der PDF: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       setUploadingPdf(false);
     }
   };
   const handleDeleteTraining = async (id: string) => {
-    if (confirm('Trainingsplan wirklich löschen?')) await deleteDoc(doc(db, 'trainingPlans', id));
+    if (confirm('Trainingsplan wirklich löschen?')) {
+      try {
+        await deleteDoc(doc(db, 'trainingPlans', id));
+      } catch (error) {
+        console.error("Error deleting training plan:", error);
+        alert("Fehler beim Löschen des Trainingsplans: " + (error instanceof Error ? error.message : String(error)));
+      }
+    }
   };
   const handleAddTraining = async () => {
-    const newPlan: TrainingPlan = { id: Date.now().toString(), title: 'New Plan', date: new Date().toISOString().split('T')[0], focus: '' };
-    await setDoc(doc(db, 'trainingPlans', newPlan.id), newPlan);
-    handleEditTraining(newPlan);
+    try {
+      const newPlan: TrainingPlan = { id: Date.now().toString(), title: 'New Plan', date: new Date().toISOString().split('T')[0], focus: '' };
+      await setDoc(doc(db, 'trainingPlans', newPlan.id), newPlan);
+      handleEditTraining(newPlan);
+    } catch (error) {
+      console.error("Error adding training plan:", error);
+      alert("Fehler beim Hinzufügen des Trainingsplans: " + (error instanceof Error ? error.message : String(error)));
+    }
   };
 
   // --- Campus Handlers ---
   const handleEditArticle = (article: CampusArticle) => { setEditingArticleId(article.id); setArticleForm(article); };
   const handleSaveArticle = async () => {
     if (!editingArticleId) return;
-    const updatedArticle = { ...campusArticles.find(a => a.id === editingArticleId), ...articleForm } as CampusArticle;
-    await setDoc(doc(db, 'campus', editingArticleId), updatedArticle);
-    setEditingArticleId(null);
+    try {
+      const updatedArticle = cleanUndefined({ ...campusArticles.find(a => a.id === editingArticleId), ...articleForm }) as CampusArticle;
+      await setDoc(doc(db, 'campus', editingArticleId), updatedArticle);
+      setEditingArticleId(null);
+    } catch (error) {
+      console.error("Error saving article:", error);
+      alert("Fehler beim Speichern des Artikels: " + (error instanceof Error ? error.message : String(error)));
+    }
   };
   const handleDeleteArticle = async (id: string) => {
-    if (confirm('Artikel wirklich löschen?')) await deleteDoc(doc(db, 'campus', id));
+    if (confirm('Artikel wirklich löschen?')) {
+      try {
+        await deleteDoc(doc(db, 'campus', id));
+      } catch (error) {
+        console.error("Error deleting article:", error);
+        alert("Fehler beim Löschen des Artikels: " + (error instanceof Error ? error.message : String(error)));
+      }
+    }
   };
   const handleAddArticle = async () => {
-    const newArticle: CampusArticle = { id: Date.now().toString(), title: 'Neuer Artikel', category: 'Allgemein', summary: '', content: '', iconType: 'book', color: 'blue' };
-    await setDoc(doc(db, 'campus', newArticle.id), newArticle);
-    handleEditArticle(newArticle);
+    try {
+      const newArticle: CampusArticle = { id: Date.now().toString(), title: 'Neuer Artikel', category: 'Allgemein', summary: '', content: '', iconType: 'book', color: 'blue' };
+      await setDoc(doc(db, 'campus', newArticle.id), newArticle);
+      handleEditArticle(newArticle);
+    } catch (error) {
+      console.error("Error adding article:", error);
+      alert("Fehler beim Hinzufügen des Artikels: " + (error instanceof Error ? error.message : String(error)));
+    }
   };
 
   return (
