@@ -316,8 +316,13 @@ export default function Admin({
     if (!editingPlaybookId) return;
     
     try {
-      const updatedPlaybook = cleanUndefined({ ...playbookItems.find(p => p.id === editingPlaybookId), ...playbookForm }) as PlaybookItem;
-      await setDoc(doc(db, 'playbook', editingPlaybookId), updatedPlaybook);
+      let updatedPlaybook: PlaybookItem;
+      if (editingPlaybookId === 'new') {
+        updatedPlaybook = cleanUndefined({ ...playbookForm, id: Date.now().toString() }) as PlaybookItem;
+      } else {
+        updatedPlaybook = cleanUndefined({ ...playbookItems.find(p => p.id === editingPlaybookId), ...playbookForm }) as PlaybookItem;
+      }
+      await setDoc(doc(db, 'playbook', updatedPlaybook.id), updatedPlaybook);
       setEditingPlaybookId(null);
     } catch (error) {
       console.error("Error saving playbook:", error);
@@ -380,15 +385,9 @@ export default function Admin({
       }
     }
   };
-  const handleAddPlaybook = async () => {
-    try {
-      const newItem: PlaybookItem = { id: Date.now().toString(), title: 'Neuer Spielzug', type: 'Offensive', situation: '', description: '', steps: ['Schritt 1'] };
-      await setDoc(doc(db, 'playbook', newItem.id), newItem);
-      handleEditPlaybook(newItem);
-    } catch (error) {
-      console.error("Error adding playbook:", error);
-      alert("Fehler beim Hinzufügen des Spielzugs: " + (error instanceof Error ? error.message : String(error)));
-    }
+  const handleAddPlaybook = () => {
+    const newItem: PlaybookItem = { id: 'new', title: 'Neuer Spielzug', type: 'Offensive', situation: '', description: '', steps: ['Schritt 1'] };
+    handleEditPlaybook(newItem);
   };
 
   // --- Training Handlers ---
