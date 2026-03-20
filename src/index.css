@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand: #0ea5e9;
-  --color-brand-dark: #0284c7;
-  --color-dark-bg: #0f172a;
-  --color-dark-card: #1e293b;
+  --color-brand: #eab308;
+  --color-brand-dark: #ca8a04;
+  --color-dark-bg: #0a0a0a;
+  --color-dark-card: #171717;
 }
 
 body {

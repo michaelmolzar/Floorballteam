@@ -449,7 +449,7 @@ export default function Admin({
   };
   const handleAddArticle = async () => {
     try {
-      const newArticle: CampusArticle = { id: Date.now().toString(), title: 'Neuer Artikel', category: 'Allgemein', summary: '', content: '', iconType: 'book', color: 'blue' };
+      const newArticle: CampusArticle = { id: Date.now().toString(), title: 'Neuer Artikel', category: 'Allgemein', summary: '', content: '', iconType: 'book', color: 'yellow' };
       await setDoc(doc(db, 'campus', newArticle.id), newArticle);
       handleEditArticle(newArticle);
     } catch (error) {
@@ -933,10 +933,10 @@ export default function Admin({
                     </div>
                     <div>
                       <label className="block text-xs text-gray-400 mb-1">Farbe</label>
-                      <select value={articleForm.color || 'blue'} onChange={e => setArticleForm({...articleForm, color: e.target.value as any})} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:border-brand outline-none">
-                        <option value="blue">Blau</option>
-                        <option value="green">Grün</option>
-                        <option value="purple">Lila</option>
+                      <select value={articleForm.color || 'yellow'} onChange={e => setArticleForm({...articleForm, color: e.target.value as any})} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:border-brand outline-none">
+                        <option value="yellow">Gelb</option>
+                        <option value="gray">Grau</option>
+                        <option value="black">Schwarz</option>
                       </select>
                     </div>
                     <div className="md:col-span-2">

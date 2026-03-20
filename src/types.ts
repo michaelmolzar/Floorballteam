@@ -70,7 +70,7 @@ export type CampusArticle = {
   summary: string;
   content: string;
   iconType: 'apple' | 'activity' | 'book';
-  color: 'green' | 'blue' | 'purple';
+  color: 'yellow' | 'gray' | 'black';
 };
 
 export type AppUser = {

@@ -19,8 +19,8 @@ export const initialTraining: TrainingPlan[] = [
 ];
 
 export const initialCampus: CampusArticle[] = [
-  { id: '1', title: 'Regeländerungen 2023', category: 'Regeln', summary: 'Die wichtigsten neuen Regeln für diese Saison.', content: '...', iconType: 'book', color: 'blue' },
-  { id: '2', title: 'Ernährung vor dem Spiel', category: 'Gesundheit', summary: 'Was man essen sollte, um maximale Leistung abzurufen.', content: '...', iconType: 'apple', color: 'green' },
+  { id: '1', title: 'Regeländerungen 2023', category: 'Regeln', summary: 'Die wichtigsten neuen Regeln für diese Saison.', content: '...', iconType: 'book', color: 'yellow' },
+  { id: '2', title: 'Ernährung vor dem Spiel', category: 'Gesundheit', summary: 'Was man essen sollte, um maximale Leistung abzurufen.', content: '...', iconType: 'apple', color: 'gray' },
 ];
 
 export const initialTermine: Termin[] = [

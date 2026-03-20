@@ -159,12 +159,10 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-brand rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-brand/20">
-                <div className="w-5 h-5 bg-white rounded-full"></div>
-              </div>
+              <img src="/logo.png" alt="Floorballbunnies Logo" className="h-12 w-auto object-contain" onError={(e) => { e.currentTarget.src = '/logo.svg' }} />
               <div>
-                <h1 className="text-xl font-bold text-white tracking-tight">U17 Floorball</h1>
-                <p className="text-xs text-brand uppercase font-semibold">Team Portal</p>
+                <h1 className="text-xl font-bold text-white tracking-tight">Floorballbunnies</h1>
+                <p className="text-xs text-brand uppercase font-semibold">U17 Team Portal</p>
               </div>
             </div>
 
@@ -321,7 +319,7 @@ export default function App() {
       {/* Footer */}
       <footer className="bg-dark-card border-t border-gray-800 py-6 mt-auto">
         <div className="max-w-6xl mx-auto px-4 text-center text-sm text-gray-500">
-          <p>&copy; 2026 U17 Floorball Team. Interner Bereich.</p>
+          <p>&copy; 2026 Floorballbunnies U17. Interner Bereich.</p>
           <p className="mt-2">Erstellt für den besten Coach der Liga.</p>
         </div>
       </footer>
