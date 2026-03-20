@@ -87,6 +87,7 @@ export default function Admin({
   const [editingPlaybookId, setEditingPlaybookId] = useState<string | null>(null);
   const [playbookForm, setPlaybookForm] = useState<Partial<PlaybookItem>>({});
   const [uploadingPlaybookImage, setUploadingPlaybookImage] = useState(false);
+  const [uploadingPlaybookPdf, setUploadingPlaybookPdf] = useState(false);
 
   // Training Edit State
   const [editingTrainingId, setEditingTrainingId] = useState<string | null>(null);
@@ -315,14 +316,8 @@ export default function Admin({
     if (!editingPlaybookId) return;
     
     try {
-      if (editingPlaybookId === 'new') {
-        const newId = Date.now().toString();
-        const newPlaybook = cleanUndefined({ ...playbookForm, id: newId }) as PlaybookItem;
-        await setDoc(doc(db, 'playbook', newId), newPlaybook);
-      } else {
-        const updatedPlaybook = cleanUndefined({ ...playbookItems.find(p => p.id === editingPlaybookId), ...playbookForm }) as PlaybookItem;
-        await setDoc(doc(db, 'playbook', editingPlaybookId), updatedPlaybook);
-      }
+      const updatedPlaybook = cleanUndefined({ ...playbookItems.find(p => p.id === editingPlaybookId), ...playbookForm }) as PlaybookItem;
+      await setDoc(doc(db, 'playbook', editingPlaybookId), updatedPlaybook);
       setEditingPlaybookId(null);
     } catch (error) {
       console.error("Error saving playbook:", error);
@@ -334,8 +329,8 @@ export default function Admin({
     const file = e.target.files?.[0];
     if (!file || !editingPlaybookId) return;
     
-    if (!file.type.startsWith('image/') && file.type !== 'image/svg+xml' && file.type !== 'application/pdf') {
-      alert('Bitte nur Bilder (JPG, PNG, SVG) oder PDFs hochladen.');
+    if (!file.type.startsWith('image/') && file.type !== 'image/svg+xml') {
+      alert('Bitte nur Bilder (JPG, PNG, SVG) hochladen.');
       return;
     }
 
@@ -352,6 +347,29 @@ export default function Admin({
       setUploadingPlaybookImage(false);
     }
   };
+  const handlePlaybookPdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingPlaybookId) return;
+    
+    if (file.type !== 'application/pdf') {
+      alert('Bitte nur PDF-Dateien hochladen.');
+      return;
+    }
+
+    setUploadingPlaybookPdf(true);
+    try {
+      const storageRef = ref(storage, `playbook/${editingPlaybookId}_${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(storageRef);
+      setPlaybookForm({ ...playbookForm, pdfUrl: downloadUrl });
+    } catch (error) {
+      console.error("Error uploading PDF:", error);
+      alert('Fehler beim Hochladen der PDF: ' + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setUploadingPlaybookPdf(false);
+    }
+  };
+
   const handleDeletePlaybook = async (id: string) => {
     if (confirm('Spielzug wirklich löschen?')) {
       try {
@@ -362,9 +380,15 @@ export default function Admin({
       }
     }
   };
-  const handleAddPlaybook = () => {
-    const newItem: PlaybookItem = { id: 'new', title: 'Neuer Spielzug', type: 'Offensive', situation: '', description: '', steps: ['Schritt 1'] };
-    handleEditPlaybook(newItem);
+  const handleAddPlaybook = async () => {
+    try {
+      const newItem: PlaybookItem = { id: Date.now().toString(), title: 'Neuer Spielzug', type: 'Offensive', situation: '', description: '', steps: ['Schritt 1'] };
+      await setDoc(doc(db, 'playbook', newItem.id), newItem);
+      handleEditPlaybook(newItem);
+    } catch (error) {
+      console.error("Error adding playbook:", error);
+      alert("Fehler beim Hinzufügen des Spielzugs: " + (error instanceof Error ? error.message : String(error)));
+    }
   };
 
   // --- Training Handlers ---
@@ -724,35 +748,55 @@ export default function Admin({
                             placeholder="Spezifische Anweisungen, alternative Ausführungen..."
                           />
                         </div>
-                        <div className="md:col-span-2">
-                          <label className="block text-xs text-gray-400 mb-1">Taktiktafel Bild/SVG/PDF</label>
+                        <div className="md:col-span-1">
+                          <label className="block text-xs text-gray-400 mb-1">Taktiktafel Bild/SVG</label>
                           <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-700/50 cursor-pointer transition-colors relative">
                             {uploadingPlaybookImage ? (
                               <span className="text-sm">Wird hochgeladen...</span>
                             ) : playbookForm.imageUrl ? (
                               <div className="flex flex-col items-center gap-2">
-                                {playbookForm.imageUrl.toLowerCase().includes('.pdf') || playbookForm.imageUrl.toLowerCase().includes('%2fpdf') ? (
-                                  <div className="flex flex-col items-center p-4 bg-gray-800 rounded">
-                                    <FileText size={48} className="text-red-400 mb-2" />
-                                    <span className="text-sm text-white">PDF Dokument hochgeladen</span>
-                                    <a href={playbookForm.imageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline mt-1">Vorschau öffnen</a>
-                                  </div>
-                                ) : (
-                                  <img src={playbookForm.imageUrl} alt="Playbook" className="max-h-32 rounded object-contain" />
-                                )}
+                                <img src={playbookForm.imageUrl} alt="Playbook" className="max-h-32 rounded object-contain" />
                                 <div className="flex items-center gap-2 mt-2">
-                                  <span className="text-sm text-green-400">Datei erfolgreich hochgeladen</span>
+                                  <span className="text-sm text-green-400">Bild hochgeladen</span>
                                   <button onClick={() => setPlaybookForm({ ...playbookForm, imageUrl: undefined })} className="text-red-400 hover:text-red-300 ml-2">Entfernen</button>
                                 </div>
                               </div>
                             ) : (
                               <>
                                 <ImageIcon size={24} className="mb-2" />
-                                <span className="text-sm">Klicken zum Hochladen (JPG, PNG, SVG, PDF)</span>
+                                <span className="text-sm text-center">Klicken zum Hochladen<br/>(JPG, PNG, SVG)</span>
                                 <input 
                                   type="file" 
-                                  accept="image/*,.svg,.pdf" 
+                                  accept="image/*,.svg" 
                                   onChange={handlePlaybookImageUpload} 
+                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                                />
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="md:col-span-1">
+                          <label className="block text-xs text-gray-400 mb-1">Zusätzliches PDF</label>
+                          <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-700/50 cursor-pointer transition-colors relative">
+                            {uploadingPlaybookPdf ? (
+                              <span className="text-sm">Wird hochgeladen...</span>
+                            ) : playbookForm.pdfUrl ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <FileText size={48} className="text-red-400 mb-2" />
+                                <span className="text-sm text-white">PDF hochgeladen</span>
+                                <a href={playbookForm.pdfUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline mt-1">Vorschau öffnen</a>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <button onClick={() => setPlaybookForm({ ...playbookForm, pdfUrl: undefined })} className="text-red-400 hover:text-red-300">Entfernen</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <FileText size={24} className="mb-2" />
+                                <span className="text-sm text-center">Klicken zum Hochladen<br/>(PDF)</span>
+                                <input 
+                                  type="file" 
+                                  accept="application/pdf" 
+                                  onChange={handlePlaybookPdfUpload} 
                                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
                                 />
                               </>

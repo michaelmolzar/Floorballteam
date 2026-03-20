@@ -90,7 +90,23 @@ export default function Taktik({ playbookItems, trainingPlans }: { playbookItems
                 </div>
 
                 {/* Visual Rink Representation or Uploaded Image */}
-                {selectedPlaybook.imageUrl ? (
+                {selectedPlaybook.pdfUrl ? (
+                  <div className="w-full mb-6 rounded-2xl overflow-hidden border-2 border-gray-700 bg-gray-900 flex justify-center items-center">
+                    <div className="flex flex-col items-center justify-center p-12 w-full">
+                      <FileText size={64} className="text-red-400 mb-4" />
+                      <h3 className="text-xl text-white font-bold mb-2">PDF Dokument</h3>
+                      <p className="text-gray-400 mb-4">Dieser Spielzug enthält ein PDF Dokument.</p>
+                      <a 
+                        href={selectedPlaybook.pdfUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="bg-brand hover:bg-brand-dark text-white px-6 py-2 rounded-lg font-bold transition-colors"
+                      >
+                        PDF öffnen
+                      </a>
+                    </div>
+                  </div>
+                ) : selectedPlaybook.imageUrl ? (
                   <div className="w-full mb-6 rounded-2xl overflow-hidden border-2 border-gray-700 bg-gray-900 flex justify-center items-center">
                     {selectedPlaybook.imageUrl.toLowerCase().includes('.pdf') || selectedPlaybook.imageUrl.toLowerCase().includes('%2fpdf') ? (
                       <div className="flex flex-col items-center justify-center p-12 w-full">

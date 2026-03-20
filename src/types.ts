@@ -35,6 +35,7 @@ export type PlaybookItem = {
   steps: string[];
   advancedTactics?: string;
   imageUrl?: string;
+  pdfUrl?: string;
 };
 
 export type TrainingPlan = {
