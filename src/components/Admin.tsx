@@ -1137,10 +1137,26 @@ export default function Admin({
 
             {icsModalState === 'confirm' && (
               <div>
-                <div className="bg-brand/20 border border-brand/30 rounded-lg p-4 mb-6 text-center">
+                <div className="bg-brand/20 border border-brand/30 rounded-lg p-4 mb-4 text-center">
                   <p className="text-3xl font-bold text-white mb-1">{parsedIcsEvents.length}</p>
                   <p className="text-sm text-brand font-medium">Termine gefunden</p>
                 </div>
+                
+                <div className="bg-gray-800 rounded-lg p-3 mb-6 max-h-40 overflow-y-auto border border-gray-700">
+                  <p className="text-xs text-gray-400 mb-2 font-bold uppercase tracking-wider">Vorschau der Termine:</p>
+                  <ul className="space-y-2">
+                    {parsedIcsEvents.slice(0, 50).map((ev, idx) => (
+                      <li key={idx} className="text-sm text-gray-300 flex justify-between items-center border-b border-gray-700/50 pb-1 last:border-0">
+                        <span className="truncate pr-2">{ev.title}</span>
+                        <span className="text-xs text-gray-500 whitespace-nowrap">{new Date(ev.date).toLocaleDateString('de-DE')}</span>
+                      </li>
+                    ))}
+                    {parsedIcsEvents.length > 50 && (
+                      <li className="text-xs text-gray-500 text-center pt-1">... und {parsedIcsEvents.length - 50} weitere</li>
+                    )}
+                  </ul>
+                </div>
+
                 <p className="text-sm text-gray-300 mb-6 text-center">
                   Möchtest du diese Termine jetzt in deinen Kalender importieren?
                 </p>
