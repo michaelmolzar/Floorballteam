@@ -91,10 +91,10 @@ export default function Dashboard({ setActiveTab, addNotification, news, termine
             {nextGame ? (
               <>
                 <h3 className="text-2xl font-bold mt-4 mb-1">{nextGame.title}</h3>
-                <p className="text-white/80 mb-4 flex items-center"><Calendar className="mr-2" size={16} />{formatDate(nextGame.date, nextGame.time)}</p>
+                <p className="text-white/80 mb-4 flex items-center"><Calendar className="mr-2 shrink-0" size={16} />{formatDate(nextGame.date, nextGame.time)}</p>
                 <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
-                  <p className="text-sm font-medium flex items-center"><MapPin className="mr-2" size={16} />{nextGame.location}</p>
-                  {nextGame.description && <p className="text-sm mt-1 flex items-center"><Bus className="mr-2" size={16} />{nextGame.description}</p>}
+                  <p className="text-sm font-medium flex items-start"><MapPin className="mr-2 mt-0.5 shrink-0" size={16} /><span className="break-words">{nextGame.location}</span></p>
+                  {nextGame.description && <p className="text-sm mt-1 flex items-start"><Bus className="mr-2 mt-0.5 shrink-0" size={16} /><span className="break-words break-all whitespace-pre-wrap">{nextGame.description}</span></p>}
                 </div>
               </>
             ) : (
@@ -116,10 +116,10 @@ export default function Dashboard({ setActiveTab, addNotification, news, termine
             {nextGirlsGame ? (
               <>
                 <h3 className="text-2xl font-bold mt-4 mb-1">{nextGirlsGame.title}</h3>
-                <p className="text-white/80 mb-4 flex items-center"><Calendar className="mr-2" size={16} />{formatDate(nextGirlsGame.date, nextGirlsGame.time)}</p>
+                <p className="text-white/80 mb-4 flex items-center"><Calendar className="mr-2 shrink-0" size={16} />{formatDate(nextGirlsGame.date, nextGirlsGame.time)}</p>
                 <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
-                  <p className="text-sm font-medium flex items-center"><MapPin className="mr-2" size={16} />{nextGirlsGame.location}</p>
-                  {nextGirlsGame.description && <p className="text-sm mt-1 flex items-center"><Bus className="mr-2" size={16} />{nextGirlsGame.description}</p>}
+                  <p className="text-sm font-medium flex items-start"><MapPin className="mr-2 mt-0.5 shrink-0" size={16} /><span className="break-words">{nextGirlsGame.location}</span></p>
+                  {nextGirlsGame.description && <p className="text-sm mt-1 flex items-start"><Bus className="mr-2 mt-0.5 shrink-0" size={16} /><span className="break-words break-all whitespace-pre-wrap">{nextGirlsGame.description}</span></p>}
                 </div>
               </>
             ) : (
@@ -139,8 +139,8 @@ export default function Dashboard({ setActiveTab, addNotification, news, termine
               <>
                 <div className="border-l-4 border-brand pl-4">
                   <p className="text-sm text-gray-400">{formatDate(nextTraining.date, nextTraining.time)}</p>
-                  <p className="font-medium text-white text-lg">{nextTraining.location}</p>
-                  {nextTraining.description && <p className="text-sm text-brand mt-1">{nextTraining.description}</p>}
+                  <p className="font-medium text-white text-lg break-words">{nextTraining.location}</p>
+                  {nextTraining.description && <p className="text-sm text-brand mt-1 break-words break-all whitespace-pre-wrap">{nextTraining.description}</p>}
                 </div>
                 <button 
                   onClick={() => setActiveTab('taktik')}

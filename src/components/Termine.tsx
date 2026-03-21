@@ -166,7 +166,7 @@ export default function Termine({ termine }: { termine: Termin[] }) {
                       <p className="text-sm text-gray-400 mt-1 flex items-center"><MapPin size={14} className="mr-1" /> {termin.location}</p>
                     )}
                     {termin.description && (
-                      <div className="mt-2 text-sm text-gray-300 bg-gray-800/50 p-2 rounded border border-gray-700/50">
+                      <div className="mt-2 text-sm text-gray-300 bg-gray-800/50 p-2 rounded border border-gray-700/50 break-words whitespace-pre-wrap">
                         {termin.description}
                       </div>
                     )}
