@@ -45,7 +45,7 @@ export default function Dashboard({ setActiveTab, addNotification, news, termine
   });
 
   const isGame = (t: Termin) => {
-    if (t.type === 'game') return true;
+    if (t.type === 'game' || t.type === 'event') return true;
     const title = (t.title || '').toLowerCase();
     return title.includes('spiel') || title.includes('match') || title.includes('turnier');
   };
