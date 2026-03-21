@@ -20,17 +20,26 @@ export default function Dashboard({ setActiveTab, addNotification, news, termine
   const latestNews = news.length > 0 ? [...news].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0] : null;
 
   const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const todayStr = `${year}-${month}-${day}`;
   
   const upcomingTermine = [...termine].filter(t => {
-    const terminDate = new Date(`${t.date}T${t.time || '00:00'}`);
-    return terminDate >= now;
+    return t.date >= todayStr;
   }).sort((a, b) => {
     const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
     const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
     return dateA.getTime() - dateB.getTime();
   });
 
-  const nextGame = upcomingTermine.find(t => t.type === 'game');
+  const isGirlsGame = (t: Termin) => {
+    const text = `${t.title} ${t.description || ''}`.toLowerCase();
+    return text.includes('mädchen') || text.includes('damen') || text.includes('wu') || text.includes('w1') || text.includes('w2');
+  };
+
+  const nextGame = upcomingTermine.find(t => t.type === 'game' && !isGirlsGame(t));
+  const nextGirlsGame = upcomingTermine.find(t => t.type === 'game' && isGirlsGame(t));
   const nextTraining = upcomingTermine.find(t => t.type === 'training');
 
   const formatDate = (dateStr: string, timeStr?: string) => {
@@ -53,7 +62,7 @@ export default function Dashboard({ setActiveTab, addNotification, news, termine
         )}
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         {/* Next Match Card */}
         <div className="bg-gradient-to-br from-brand-dark to-brand rounded-2xl p-6 shadow-lg relative overflow-hidden">
           <div className="absolute top-0 right-0 -mt-4 -mr-4 text-white/20">
@@ -74,6 +83,31 @@ export default function Dashboard({ setActiveTab, addNotification, news, termine
               <div className="mt-4">
                 <h3 className="text-xl font-bold mb-1 text-white/70">Kein Spiel geplant</h3>
                 <p className="text-white/50 text-sm">Aktuell stehen keine Spiele an.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Next Girls Match Card */}
+        <div className="bg-gradient-to-br from-pink-600 to-purple-600 rounded-2xl p-6 shadow-lg relative overflow-hidden">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 text-white/20">
+            <Trophy size={120} />
+          </div>
+          <div className="relative z-10 text-white">
+            <span className="text-xs font-bold uppercase tracking-wider bg-white/20 px-2 py-1 rounded">Nächstes Spiel Mädchen</span>
+            {nextGirlsGame ? (
+              <>
+                <h3 className="text-2xl font-bold mt-4 mb-1">{nextGirlsGame.title}</h3>
+                <p className="text-white/80 mb-4 flex items-center"><Calendar className="mr-2" size={16} />{formatDate(nextGirlsGame.date, nextGirlsGame.time)}</p>
+                <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+                  <p className="text-sm font-medium flex items-center"><MapPin className="mr-2" size={16} />{nextGirlsGame.location}</p>
+                  {nextGirlsGame.description && <p className="text-sm mt-1 flex items-center"><Bus className="mr-2" size={16} />{nextGirlsGame.description}</p>}
+                </div>
+              </>
+            ) : (
+              <div className="mt-4">
+                <h3 className="text-xl font-bold mb-1 text-white/70">Kein Spiel geplant</h3>
+                <p className="text-white/50 text-sm">Aktuell stehen keine Mädchen-Spiele an.</p>
               </div>
             )}
           </div>

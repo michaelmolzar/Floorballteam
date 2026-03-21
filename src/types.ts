@@ -26,6 +26,13 @@ export type Notification = {
   readBy: string[];
 };
 
+export type PlaybookItem = {
+  id: string;
+  title: string;
+  category: string;
+  pdfUrl?: string;
+};
+
 export type TrainingPlan = {
   id: string;
   title: string;

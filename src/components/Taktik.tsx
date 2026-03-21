@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Lock, AlertTriangle, FileText, Calendar as CalendarIcon } from 'lucide-react';
-import { TrainingPlan } from '../types';
+import { Lock, AlertTriangle, FileText, Calendar as CalendarIcon, BookOpen } from 'lucide-react';
+import { TrainingPlan, PlaybookItem } from '../types';
 
-export default function Taktik({ trainingPlans }: { trainingPlans: TrainingPlan[] }) {
-  const [activeSubTab, setActiveSubTab] = useState<'training' | 'gegner'>('training');
+export default function Taktik({ trainingPlans, playbookItems }: { trainingPlans: TrainingPlan[], playbookItems: PlaybookItem[] }) {
+  const [activeSubTab, setActiveSubTab] = useState<'playbook' | 'training' | 'gegner'>('playbook');
   const [isCoach, setIsCoach] = useState(false); // Simulate coach role
 
   return (
@@ -11,6 +11,12 @@ export default function Taktik({ trainingPlans }: { trainingPlans: TrainingPlan[
       {/* Sub-Navigation for Taktik */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-gray-700 pb-4">
         <div className="flex gap-4 overflow-x-auto w-full sm:w-auto">
+          <button 
+            onClick={() => setActiveSubTab('playbook')}
+            className={`${activeSubTab === 'playbook' ? 'bg-brand text-white' : 'bg-gray-800 hover:bg-gray-700 text-gray-300'} px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors`}
+          >
+            Playbook
+          </button>
           <button 
             onClick={() => setActiveSubTab('training')}
             className={`${activeSubTab === 'training' ? 'bg-brand text-white' : 'bg-gray-800 hover:bg-gray-700 text-gray-300'} px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors`}
@@ -36,6 +42,40 @@ export default function Taktik({ trainingPlans }: { trainingPlans: TrainingPlan[
           </button>
         </div>
       </div>
+
+      {activeSubTab === 'playbook' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {playbookItems.map(item => (
+            <div key={item.id} className="bg-dark-card border border-gray-700 rounded-xl p-6 hover:border-brand transition-colors">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-white">{item.title}</h3>
+                  <div className="flex items-center text-gray-400 text-sm mt-1">
+                    <BookOpen size={14} className="mr-1" /> {item.category}
+                  </div>
+                </div>
+                <div className="bg-gray-800 p-3 rounded-lg">
+                  <FileText className="text-brand" size={24} />
+                </div>
+              </div>
+              {item.pdfUrl ? (
+                <a href={item.pdfUrl} target="_blank" rel="noopener noreferrer" className="w-full bg-brand hover:bg-brand-dark text-white py-2 rounded-lg font-medium transition-colors text-sm flex items-center justify-center">
+                  PDF Ansehen / Download
+                </a>
+              ) : (
+                <button disabled className="w-full bg-gray-800 text-gray-500 py-2 rounded-lg font-medium text-sm cursor-not-allowed">
+                  Keine PDF verfügbar
+                </button>
+              )}
+            </div>
+          ))}
+          {playbookItems.length === 0 && (
+            <div className="col-span-2 text-center text-gray-500 py-10">
+              Keine Playbook-Einträge verfügbar.
+            </div>
+          )}
+        </div>
+      )}
 
       {activeSubTab === 'training' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

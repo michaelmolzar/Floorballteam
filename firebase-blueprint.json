@@ -35,6 +35,17 @@
       },
       "required": ["name", "number", "position", "type", "stats"]
     },
+    "PlaybookItem": {
+      "title": "PlaybookItem",
+      "description": "A playbook PDF document.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "pdfUrl": { "type": "string" }
+      },
+      "required": ["title", "category"]
+    },
     "TrainingPlan": {
       "title": "TrainingPlan",
       "description": "A scheduled training session plan.",
@@ -109,6 +120,10 @@
     "/players/{playerId}": {
       "schema": { "$ref": "#/entities/Player" },
       "description": "Roster of players."
+    },
+    "/playbook/{playbookId}": {
+      "schema": { "$ref": "#/entities/PlaybookItem" },
+      "description": "Playbook PDF documents."
     },
     "/trainingPlans/{planId}": {
       "schema": { "$ref": "#/entities/TrainingPlan" },

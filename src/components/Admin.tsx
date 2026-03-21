@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Player, TrainingPlan, CampusArticle, Termin, CoachNews, AppUser } from '../types';
+import { Player, TrainingPlan, CampusArticle, Termin, CoachNews, AppUser, PlaybookItem } from '../types';
 import { Users, Calendar, Target, BookOpen, Plus, Edit2, Trash2, Save, X, Info, Image as ImageIcon, Megaphone, Database, Shield, Upload, FileText } from 'lucide-react';
 import { doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -8,6 +8,7 @@ import { initialPlayers, initialTraining, initialCampus, initialTermine, initial
 
 export default function Admin({ 
   players, setPlayers,
+  playbookItems, setPlaybookItems,
   trainingPlans, setTrainingPlans,
   campusArticles, setCampusArticles,
   termine, setTermine,
@@ -16,6 +17,7 @@ export default function Admin({
   currentUserRole
 }: { 
   players: Player[], setPlayers: any,
+  playbookItems: PlaybookItem[], setPlaybookItems: any,
   trainingPlans: TrainingPlan[], setTrainingPlans: any,
   campusArticles: CampusArticle[], setCampusArticles: any,
   termine: Termin[], setTermine: any,
@@ -75,6 +77,14 @@ export default function Admin({
   // News Edit State
   const [editingNewsId, setEditingNewsId] = useState<string | null>(null);
   const [newsForm, setNewsForm] = useState<Partial<CoachNews>>({});
+
+  // Taktik Sub-Tab State
+  const [taktikTab, setTaktikTab] = useState<'playbook' | 'training'>('playbook');
+
+  // Playbook Edit State
+  const [editingPlaybookId, setEditingPlaybookId] = useState<string | null>(null);
+  const [playbookForm, setPlaybookForm] = useState<Partial<PlaybookItem>>({});
+  const [uploadingPlaybookPdf, setUploadingPlaybookPdf] = useState(false);
 
   // Training Edit State
   const [editingTrainingId, setEditingTrainingId] = useState<string | null>(null);
@@ -294,6 +304,63 @@ export default function Admin({
     } catch (error) {
       console.error("Error adding news:", error);
       alert("Fehler beim Hinzufügen der News: " + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+
+  // --- Playbook Handlers ---
+  const handleEditPlaybook = (item: PlaybookItem) => { setEditingPlaybookId(item.id); setPlaybookForm(item); };
+  const handleSavePlaybook = async () => {
+    if (!editingPlaybookId) return;
+    try {
+      const updatedPlaybook = cleanUndefined({ ...playbookItems.find(p => p.id === editingPlaybookId), ...playbookForm }) as PlaybookItem;
+      await setDoc(doc(db, 'playbook', editingPlaybookId), updatedPlaybook);
+      setEditingPlaybookId(null);
+    } catch (error) {
+      console.error("Error saving playbook:", error);
+      alert("Fehler beim Speichern des Playbooks: " + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+  
+  const handlePlaybookPdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingPlaybookId) return;
+    
+    if (file.type !== 'application/pdf') {
+      alert('Bitte nur PDF-Dateien hochladen.');
+      return;
+    }
+
+    setUploadingPlaybookPdf(true);
+    try {
+      const storageRef = ref(storage, `playbook/${editingPlaybookId}_${Date.now()}.pdf`);
+      await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(storageRef);
+      setPlaybookForm({ ...playbookForm, pdfUrl: downloadUrl });
+    } catch (error) {
+      console.error('Error uploading PDF:', error);
+      alert('Fehler beim Hochladen der PDF: ' + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setUploadingPlaybookPdf(false);
+    }
+  };
+  const handleDeletePlaybook = async (id: string) => {
+    if (confirm('Playbook wirklich löschen?')) {
+      try {
+        await deleteDoc(doc(db, 'playbook', id));
+      } catch (error) {
+        console.error("Error deleting playbook:", error);
+        alert("Fehler beim Löschen des Playbooks: " + (error instanceof Error ? error.message : String(error)));
+      }
+    }
+  };
+  const handleAddPlaybook = async () => {
+    try {
+      const newItem: PlaybookItem = { id: Date.now().toString(), title: 'Neues Playbook', category: 'Offensive' };
+      await setDoc(doc(db, 'playbook', newItem.id), newItem);
+      handleEditPlaybook(newItem);
+    } catch (error) {
+      console.error("Error adding playbook:", error);
+      alert("Fehler beim Hinzufügen des Playbooks: " + (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -595,15 +662,119 @@ export default function Admin({
           {/* ================= TAKTIK & TRAINING ================= */}
           {adminTab === 'taktik' && (
             <div className="bg-dark-card border border-gray-700 rounded-xl p-6 shadow-lg">
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h4 className="font-bold text-white">Trainingspläne verwalten</h4>
-                  <button onClick={handleAddTraining} className="bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center">
-                    <Plus size={16} className="mr-1" /> New Plan
-                  </button>
-                </div>
+              <div className="flex gap-4 border-b border-gray-700 pb-4 mb-6">
+                <button onClick={() => setTaktikTab('playbook')} className={`${taktikTab === 'playbook' ? 'bg-brand text-white' : 'bg-gray-800 text-gray-300'} px-4 py-2 rounded-lg font-medium text-sm`}>Playbook</button>
+                <button onClick={() => setTaktikTab('training')} className={`${taktikTab === 'training' ? 'bg-brand text-white' : 'bg-gray-800 text-gray-300'} px-4 py-2 rounded-lg font-medium text-sm`}>Trainingspläne</button>
+              </div>
 
-                {editingTrainingId ? (
+              {taktikTab === 'playbook' && (
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="font-bold text-white">Playbook verwalten</h4>
+                    <button onClick={handleAddPlaybook} className="bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center">
+                      <Plus size={16} className="mr-1" /> Neues Playbook
+                    </button>
+                  </div>
+
+                  {editingPlaybookId ? (
+                    <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-6">
+                      <h5 className="text-white font-bold mb-4">Playbook bearbeiten</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Titel</label>
+                          <input type="text" value={playbookForm.title || ''} onChange={e => setPlaybookForm({...playbookForm, title: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:border-brand outline-none" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Kategorie</label>
+                          <input type="text" value={playbookForm.category || ''} onChange={e => setPlaybookForm({...playbookForm, category: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:border-brand outline-none" />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-xs text-gray-400 mb-1">PDF Upload</label>
+                          <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-700/50 cursor-pointer transition-colors relative">
+                            {uploadingPlaybookPdf ? (
+                              <span className="text-sm">Wird hochgeladen...</span>
+                            ) : playbookForm.pdfUrl ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-green-400">PDF erfolgreich hochgeladen</span>
+                                <button onClick={() => setPlaybookForm({ ...playbookForm, pdfUrl: undefined })} className="text-red-400 hover:text-red-300 ml-2">Entfernen</button>
+                              </div>
+                            ) : (
+                              <>
+                                <span className="text-sm">Klicken zum Hochladen (PDF)</span>
+                                <input 
+                                  type="file" 
+                                  accept="application/pdf" 
+                                  onChange={handlePlaybookPdfUpload} 
+                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                                />
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => setEditingPlaybookId(null)} className="px-4 py-2 rounded text-gray-300 hover:bg-gray-700">Abbrechen</button>
+                        <button onClick={handleSavePlaybook} className="px-4 py-2 rounded bg-brand text-white hover:bg-brand-dark flex items-center"><Save size={16} className="mr-2"/> Speichern</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm text-gray-300">
+                        <thead className="text-xs text-gray-400 uppercase bg-gray-800/50 border-b border-gray-700">
+                          <tr>
+                            <th className="px-4 py-3">Titel</th>
+                            <th className="px-4 py-3">Kategorie</th>
+                            <th className="px-4 py-3 text-center">PDF</th>
+                            <th className="px-4 py-3 text-right">Aktionen</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {playbookItems.map(item => (
+                            <tr key={item.id} className="border-b border-gray-700/50 hover:bg-gray-800/30">
+                              <td className="px-4 py-3">
+                                <input 
+                                  type="text" 
+                                  value={item.title}
+                                  onChange={(e) => setPlaybookItems(playbookItems.map(p => p.id === item.id ? { ...p, title: e.target.value } : p))}
+                                  onBlur={(e) => updateDoc(doc(db, 'playbook', item.id), { title: e.target.value })}
+                                  className="bg-transparent border border-transparent hover:border-gray-600 focus:border-brand focus:bg-gray-800 rounded px-2 py-1 text-white font-bold w-full outline-none transition-colors"
+                                />
+                              </td>
+                              <td className="px-4 py-3">
+                                <input 
+                                  type="text" 
+                                  value={item.category}
+                                  onChange={(e) => setPlaybookItems(playbookItems.map(p => p.id === item.id ? { ...p, category: e.target.value } : p))}
+                                  onBlur={(e) => updateDoc(doc(db, 'playbook', item.id), { category: e.target.value })}
+                                  className="bg-transparent border border-transparent hover:border-gray-600 focus:border-brand focus:bg-gray-800 rounded px-2 py-1 text-gray-300 w-full outline-none transition-colors"
+                                />
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                {item.pdfUrl ? <span className="text-green-400 font-bold text-xs">JA</span> : <span className="text-gray-600 text-xs">-</span>}
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <button onClick={() => handleEditPlaybook(item)} className="text-blue-400 hover:text-blue-300 p-1"><Edit2 size={16} /></button>
+                                <button onClick={() => handleDeletePlaybook(item.id)} className="text-red-400 hover:text-red-300 p-1 ml-2"><Trash2 size={16} /></button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {taktikTab === 'training' && (
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="font-bold text-white">Trainingspläne verwalten</h4>
+                    <button onClick={handleAddTraining} className="bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center">
+                      <Plus size={16} className="mr-1" /> New Plan
+                    </button>
+                  </div>
+
+                  {editingTrainingId ? (
                     <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-6">
                       <h5 className="text-white font-bold mb-4">Trainingsplan bearbeiten</h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -695,7 +866,8 @@ export default function Admin({
                       </table>
                     </div>
                   )}
-              </div>
+                </div>
+              )}
             </div>
           )}
 
