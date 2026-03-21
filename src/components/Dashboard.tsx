@@ -25,25 +25,43 @@ export default function Dashboard({ setActiveTab, addNotification, news, termine
   const day = String(now.getDate()).padStart(2, '0');
   const todayStr = `${year}-${month}-${day}`;
   
+  const normalizeDate = (dateStr: string) => {
+    if (!dateStr) return '0000-00-00';
+    if (dateStr.includes('.')) {
+      const parts = dateStr.split('.');
+      if (parts.length === 3) {
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+    }
+    return dateStr;
+  };
+
   const upcomingTermine = [...termine].filter(t => {
-    return t.date >= todayStr;
+    return normalizeDate(t.date) >= todayStr;
   }).sort((a, b) => {
-    const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
-    const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
+    const dateA = new Date(`${normalizeDate(a.date)}T${a.time || '00:00'}`);
+    const dateB = new Date(`${normalizeDate(b.date)}T${b.time || '00:00'}`);
     return dateA.getTime() - dateB.getTime();
   });
 
-  const isGirlsGame = (t: Termin) => {
-    const text = `${t.title} ${t.description || ''}`.toLowerCase();
-    return text.includes('mädchen') || text.includes('damen') || text.includes('wu') || text.includes('w1') || text.includes('w2');
+  const isGame = (t: Termin) => {
+    if (t.type === 'game') return true;
+    const title = (t.title || '').toLowerCase();
+    return title.includes('spiel') || title.includes('match') || title.includes('turnier');
   };
 
-  const nextGame = upcomingTermine.find(t => t.type === 'game' && !isGirlsGame(t));
-  const nextGirlsGame = upcomingTermine.find(t => t.type === 'game' && isGirlsGame(t));
-  const nextTraining = upcomingTermine.find(t => t.type === 'training');
+  const isGirlsGame = (t: Termin) => {
+    const text = `${t.title} ${t.description || ''}`.toLowerCase();
+    return text.includes('mädchen') || text.includes('damen') || text.includes('wu') || text.includes('w1') || text.includes('w2') || text.includes('weiblich');
+  };
+
+  const nextGame = upcomingTermine.find(t => isGame(t) && !isGirlsGame(t));
+  const nextGirlsGame = upcomingTermine.find(t => isGame(t) && isGirlsGame(t));
+  const nextTraining = upcomingTermine.find(t => t.type === 'training' && !isGame(t));
 
   const formatDate = (dateStr: string, timeStr?: string) => {
-    const d = new Date(`${dateStr}T${timeStr || '00:00'}`);
+    const normDate = normalizeDate(dateStr);
+    const d = new Date(`${normDate}T${timeStr || '00:00'}`);
     return d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short' }) + (timeStr ? ` • ${timeStr} Uhr` : '');
   };
 
