@@ -26,18 +26,6 @@ export type Notification = {
   readBy: string[];
 };
 
-export type PlaybookItem = {
-  id: string;
-  title: string;
-  type: 'Offensive' | 'Defensive';
-  situation: string;
-  description: string;
-  steps: string[];
-  advancedTactics?: string;
-  imageUrl?: string;
-  pdfUrl?: string;
-};
-
 export type TrainingPlan = {
   id: string;
   title: string;

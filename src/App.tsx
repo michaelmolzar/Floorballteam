@@ -9,7 +9,7 @@ import Termine from './components/Termine';
 import Taktik from './components/Taktik';
 import Campus from './components/Campus';
 import Admin from './components/Admin';
-import { Notification, Player, PlaybookItem, TrainingPlan, CampusArticle, Termin, CoachNews, AppUser } from './types';
+import { Notification, Player, TrainingPlan, CampusArticle, Termin, CoachNews, AppUser } from './types';
 
 export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -20,7 +20,6 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const [players, setPlayers] = useState<Player[]>([]);
-  const [playbookItems, setPlaybookItems] = useState<PlaybookItem[]>([]);
   const [trainingPlans, setTrainingPlans] = useState<TrainingPlan[]>([]);
   const [campusArticles, setCampusArticles] = useState<CampusArticle[]>([]);
   const [termine, setTermine] = useState<Termin[]>([]);
@@ -86,13 +85,9 @@ export default function App() {
   useEffect(() => {
     if (!isAuthReady || !user) return;
 
-    let unsubPlaybook: () => void = () => {};
     let unsubTraining: () => void = () => {};
     
     if (userRole === 'player' || userRole === 'coach' || userRole === 'admin') {
-      unsubPlaybook = onSnapshot(collection(db, 'playbook'), (snapshot) => {
-        setPlaybookItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PlaybookItem)));
-      });
       unsubTraining = onSnapshot(collection(db, 'trainingPlans'), (snapshot) => {
         setTrainingPlans(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainingPlan)));
       });
@@ -106,7 +101,6 @@ export default function App() {
     }
 
     return () => {
-      unsubPlaybook();
       unsubTraining();
       unsubUsers();
     };
@@ -315,12 +309,11 @@ export default function App() {
         {activeTab === 'dashboard' && <Dashboard setActiveTab={setActiveTab} addNotification={addNotification} news={news} termine={termine} userRole={userRole} />}
         {activeTab === 'team' && <Team players={players} setPlayers={setPlayers} />}
         {activeTab === 'termine' && <Termine termine={termine} />}
-        {activeTab === 'taktik' && <Taktik playbookItems={playbookItems} trainingPlans={trainingPlans} />}
+        {activeTab === 'taktik' && <Taktik trainingPlans={trainingPlans} />}
         {activeTab === 'campus' && <Campus articles={campusArticles} />}
         {activeTab === 'admin' && (
           <Admin 
             players={players} setPlayers={setPlayers}
-            playbookItems={playbookItems} setPlaybookItems={setPlaybookItems}
             trainingPlans={trainingPlans} setTrainingPlans={setTrainingPlans}
             campusArticles={campusArticles} setCampusArticles={setCampusArticles}
             termine={termine} setTermine={setTermine}

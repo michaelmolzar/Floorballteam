@@ -35,20 +35,6 @@
       },
       "required": ["name", "number", "position", "type", "stats"]
     },
-    "PlaybookItem": {
-      "title": "PlaybookItem",
-      "description": "A tactical play or strategy.",
-      "type": "object",
-      "properties": {
-        "title": { "type": "string" },
-        "type": { "type": "string", "enum": ["Offensive", "Defensive"] },
-        "situation": { "type": "string" },
-        "description": { "type": "string" },
-        "steps": { "type": "array", "items": { "type": "string" } },
-        "advancedTactics": { "type": "string" }
-      },
-      "required": ["title", "type", "situation", "description", "steps"]
-    },
     "TrainingPlan": {
       "title": "TrainingPlan",
       "description": "A scheduled training session plan.",
@@ -123,10 +109,6 @@
     "/players/{playerId}": {
       "schema": { "$ref": "#/entities/Player" },
       "description": "Roster of players."
-    },
-    "/playbook/{playbookId}": {
-      "schema": { "$ref": "#/entities/PlaybookItem" },
-      "description": "Tactical playbook items."
     },
     "/trainingPlans/{planId}": {
       "schema": { "$ref": "#/entities/TrainingPlan" },

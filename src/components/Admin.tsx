@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
-import { Player, PlaybookItem, TrainingPlan, CampusArticle, Termin, CoachNews, AppUser } from '../types';
+import { Player, TrainingPlan, CampusArticle, Termin, CoachNews, AppUser } from '../types';
 import { Users, Calendar, Target, BookOpen, Plus, Edit2, Trash2, Save, X, Info, Image as ImageIcon, Megaphone, Database, Shield, Upload, FileText } from 'lucide-react';
 import { doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
-import { initialPlayers, initialPlaybook, initialTraining, initialCampus, initialTermine, initialNews } from '../seedData';
+import { initialPlayers, initialTraining, initialCampus, initialTermine, initialNews } from '../seedData';
 
 export default function Admin({ 
   players, setPlayers,
-  playbookItems, setPlaybookItems,
   trainingPlans, setTrainingPlans,
   campusArticles, setCampusArticles,
   termine, setTermine,
@@ -17,7 +16,6 @@ export default function Admin({
   currentUserRole
 }: { 
   players: Player[], setPlayers: any,
-  playbookItems: PlaybookItem[], setPlaybookItems: any,
   trainingPlans: TrainingPlan[], setTrainingPlans: any,
   campusArticles: CampusArticle[], setCampusArticles: any,
   termine: Termin[], setTermine: any,
@@ -49,7 +47,6 @@ export default function Admin({
     setIsSeeding(true);
     try {
       for (const p of initialPlayers) await setDoc(doc(db, 'players', p.id), p);
-      for (const p of initialPlaybook) await setDoc(doc(db, 'playbook', p.id), p);
       for (const t of initialTraining) await setDoc(doc(db, 'trainingPlans', t.id), t);
       for (const c of initialCampus) await setDoc(doc(db, 'campus', c.id), c);
       for (const t of initialTermine) await setDoc(doc(db, 'termine', t.id), t);
@@ -78,16 +75,6 @@ export default function Admin({
   // News Edit State
   const [editingNewsId, setEditingNewsId] = useState<string | null>(null);
   const [newsForm, setNewsForm] = useState<Partial<CoachNews>>({});
-
-  // Taktik Sub-Tab State
-  const [taktikTab, setTaktikTab] = useState<'playbook' | 'training'>('playbook');
-  const [playbookFilter, setPlaybookFilter] = useState<'all' | 'Offensive' | 'Defensive'>('all');
-  
-  // Playbook Edit State
-  const [editingPlaybookId, setEditingPlaybookId] = useState<string | null>(null);
-  const [playbookForm, setPlaybookForm] = useState<Partial<PlaybookItem>>({});
-  const [uploadingPlaybookImage, setUploadingPlaybookImage] = useState(false);
-  const [uploadingPlaybookPdf, setUploadingPlaybookPdf] = useState(false);
 
   // Training Edit State
   const [editingTrainingId, setEditingTrainingId] = useState<string | null>(null);
@@ -308,86 +295,6 @@ export default function Admin({
       console.error("Error adding news:", error);
       alert("Fehler beim Hinzufügen der News: " + (error instanceof Error ? error.message : String(error)));
     }
-  };
-
-  // --- Playbook Handlers ---
-  const handleEditPlaybook = (item: PlaybookItem) => { setEditingPlaybookId(item.id); setPlaybookForm(item); };
-  const handleSavePlaybook = async () => {
-    if (!editingPlaybookId) return;
-    
-    try {
-      let updatedPlaybook: PlaybookItem;
-      if (editingPlaybookId === 'new') {
-        updatedPlaybook = cleanUndefined({ ...playbookForm, id: Date.now().toString() }) as PlaybookItem;
-      } else {
-        updatedPlaybook = cleanUndefined({ ...playbookItems.find(p => p.id === editingPlaybookId), ...playbookForm }) as PlaybookItem;
-      }
-      await setDoc(doc(db, 'playbook', updatedPlaybook.id), updatedPlaybook);
-      setEditingPlaybookId(null);
-    } catch (error) {
-      console.error("Error saving playbook:", error);
-      alert("Fehler beim Speichern des Spielzugs: " + (error instanceof Error ? error.message : String(error)));
-    }
-  };
-
-  const handlePlaybookImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !editingPlaybookId) return;
-    
-    if (!file.type.startsWith('image/') && file.type !== 'image/svg+xml') {
-      alert('Bitte nur Bilder (JPG, PNG, SVG) hochladen.');
-      return;
-    }
-
-    setUploadingPlaybookImage(true);
-    try {
-      const storageRef = ref(storage, `playbook/${editingPlaybookId === 'new' ? 'temp' : editingPlaybookId}_${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const downloadUrl = await getDownloadURL(storageRef);
-      setPlaybookForm({ ...playbookForm, imageUrl: downloadUrl });
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      alert('Fehler beim Hochladen der Datei: ' + (error instanceof Error ? error.message : String(error)));
-    } finally {
-      setUploadingPlaybookImage(false);
-    }
-  };
-  const handlePlaybookPdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !editingPlaybookId) return;
-    
-    if (file.type !== 'application/pdf') {
-      alert('Bitte nur PDF-Dateien hochladen.');
-      return;
-    }
-
-    setUploadingPlaybookPdf(true);
-    try {
-      const storageRef = ref(storage, `playbook/${editingPlaybookId}_${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const downloadUrl = await getDownloadURL(storageRef);
-      setPlaybookForm({ ...playbookForm, pdfUrl: downloadUrl });
-    } catch (error) {
-      console.error("Error uploading PDF:", error);
-      alert('Fehler beim Hochladen der PDF: ' + (error instanceof Error ? error.message : String(error)));
-    } finally {
-      setUploadingPlaybookPdf(false);
-    }
-  };
-
-  const handleDeletePlaybook = async (id: string) => {
-    if (confirm('Spielzug wirklich löschen?')) {
-      try {
-        await deleteDoc(doc(db, 'playbook', id));
-      } catch (error) {
-        console.error("Error deleting playbook:", error);
-        alert("Fehler beim Löschen des Spielzugs: " + (error instanceof Error ? error.message : String(error)));
-      }
-    }
-  };
-  const handleAddPlaybook = () => {
-    const newItem: PlaybookItem = { id: 'new', title: 'Neuer Spielzug', type: 'Offensive', situation: '', description: '', steps: ['Schritt 1'] };
-    handleEditPlaybook(newItem);
   };
 
   // --- Training Handlers ---
@@ -688,166 +595,15 @@ export default function Admin({
           {/* ================= TAKTIK & TRAINING ================= */}
           {adminTab === 'taktik' && (
             <div className="bg-dark-card border border-gray-700 rounded-xl p-6 shadow-lg">
-              <div className="flex gap-4 border-b border-gray-700 pb-4 mb-6">
-                <button onClick={() => setTaktikTab('playbook')} className={`${taktikTab === 'playbook' ? 'bg-brand text-white' : 'bg-gray-800 text-gray-300'} px-4 py-2 rounded-lg font-medium text-sm`}>Playbook</button>
-                <button onClick={() => setTaktikTab('training')} className={`${taktikTab === 'training' ? 'bg-brand text-white' : 'bg-gray-800 text-gray-300'} px-4 py-2 rounded-lg font-medium text-sm`}>Trainingspläne</button>
-              </div>
-
-              {taktikTab === 'playbook' && (
-                <div>
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-                    <div className="flex bg-gray-800 rounded-lg p-1">
-                      <button onClick={() => setPlaybookFilter('all')} className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${playbookFilter === 'all' ? 'bg-gray-700 text-white shadow' : 'text-gray-400 hover:text-white'}`}>Alle</button>
-                      <button onClick={() => setPlaybookFilter('Offensive')} className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${playbookFilter === 'Offensive' ? 'bg-brand/20 text-brand shadow' : 'text-gray-400 hover:text-white'}`}>Offensiv</button>
-                      <button onClick={() => setPlaybookFilter('Defensive')} className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${playbookFilter === 'Defensive' ? 'bg-purple-500/20 text-purple-400 shadow' : 'text-gray-400 hover:text-white'}`}>Defensiv</button>
-                    </div>
-                    <button onClick={handleAddPlaybook} className="bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center">
-                      <Plus size={16} className="mr-1" /> Neuer Spielzug
-                    </button>
-                  </div>
-                  
-                  {editingPlaybookId ? (
-                    <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-6">
-                      <h5 className="text-white font-bold mb-4">Spielzug bearbeiten</h5>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <label className="block text-xs text-gray-400 mb-1">Titel</label>
-                          <input type="text" value={playbookForm.title || ''} onChange={e => setPlaybookForm({...playbookForm, title: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:border-brand outline-none" />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-400 mb-1">Typ</label>
-                          <select value={playbookForm.type || 'Offensive'} onChange={e => setPlaybookForm({...playbookForm, type: e.target.value as any})} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:border-brand outline-none">
-                            <option value="Offensive">Offensive</option>
-                            <option value="Defensive">Defensive</option>
-                          </select>
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="block text-xs text-gray-400 mb-1">Situation</label>
-                          <input type="text" value={playbookForm.situation || ''} onChange={e => setPlaybookForm({...playbookForm, situation: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:border-brand outline-none" />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="block text-xs text-gray-400 mb-1">Beschreibung</label>
-                          <textarea value={playbookForm.description || ''} onChange={e => setPlaybookForm({...playbookForm, description: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:border-brand outline-none h-20" />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="block text-xs text-gray-400 mb-1">Ablauf (Schritte, einer pro Zeile)</label>
-                          <textarea 
-                            value={playbookForm.steps?.join('\n') || ''} 
-                            onChange={e => setPlaybookForm({...playbookForm, steps: e.target.value.split('\n').filter(s => s.trim() !== '')})} 
-                            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:border-brand outline-none h-32" 
-                            placeholder="Schritt 1...&#10;Schritt 2..."
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="block text-xs text-brand mb-1 flex items-center"><Lock size={12} className="mr-1" /> Fortgeschrittene Taktiken (Nur für Trainer)</label>
-                          <textarea 
-                            value={playbookForm.advancedTactics || ''} 
-                            onChange={e => setPlaybookForm({...playbookForm, advancedTactics: e.target.value})} 
-                            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:border-brand outline-none h-24" 
-                            placeholder="Spezifische Anweisungen, alternative Ausführungen..."
-                          />
-                        </div>
-                        <div className="md:col-span-1">
-                          <label className="block text-xs text-gray-400 mb-1">Taktiktafel Bild/SVG</label>
-                          <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-700/50 cursor-pointer transition-colors relative">
-                            {uploadingPlaybookImage ? (
-                              <span className="text-sm">Wird hochgeladen...</span>
-                            ) : playbookForm.imageUrl ? (
-                              <div className="flex flex-col items-center gap-2">
-                                <img src={playbookForm.imageUrl} alt="Playbook" className="max-h-32 rounded object-contain" />
-                                <div className="flex items-center gap-2 mt-2">
-                                  <span className="text-sm text-green-400">Bild hochgeladen</span>
-                                  <button onClick={() => setPlaybookForm({ ...playbookForm, imageUrl: undefined })} className="text-red-400 hover:text-red-300 ml-2">Entfernen</button>
-                                </div>
-                              </div>
-                            ) : (
-                              <>
-                                <ImageIcon size={24} className="mb-2" />
-                                <span className="text-sm text-center">Klicken zum Hochladen<br/>(JPG, PNG, SVG)</span>
-                                <input 
-                                  type="file" 
-                                  accept="image/*,.svg" 
-                                  onChange={handlePlaybookImageUpload} 
-                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                                />
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <div className="md:col-span-1">
-                          <label className="block text-xs text-gray-400 mb-1">Zusätzliches PDF</label>
-                          <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-700/50 cursor-pointer transition-colors relative">
-                            {uploadingPlaybookPdf ? (
-                              <span className="text-sm">Wird hochgeladen...</span>
-                            ) : playbookForm.pdfUrl ? (
-                              <div className="flex flex-col items-center gap-2">
-                                <FileText size={48} className="text-red-400 mb-2" />
-                                <span className="text-sm text-white">PDF hochgeladen</span>
-                                <a href={playbookForm.pdfUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline mt-1">Vorschau öffnen</a>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <button onClick={() => setPlaybookForm({ ...playbookForm, pdfUrl: undefined })} className="text-red-400 hover:text-red-300">Entfernen</button>
-                                </div>
-                              </div>
-                            ) : (
-                              <>
-                                <FileText size={24} className="mb-2" />
-                                <span className="text-sm text-center">Klicken zum Hochladen<br/>(PDF)</span>
-                                <input 
-                                  type="file" 
-                                  accept="application/pdf" 
-                                  onChange={handlePlaybookPdfUpload} 
-                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                                />
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-end gap-2">
-                        <button onClick={() => setEditingPlaybookId(null)} className="px-4 py-2 rounded text-gray-300 hover:bg-gray-700">Abbrechen</button>
-                        <button onClick={handleSavePlaybook} className="px-4 py-2 rounded bg-brand text-white hover:bg-brand-dark flex items-center"><Save size={16} className="mr-2"/> Speichern</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm text-gray-300">
-                        <thead className="text-xs text-gray-400 uppercase bg-gray-800/50 border-b border-gray-700">
-                          <tr>
-                            <th className="px-4 py-3">Titel</th>
-                            <th className="px-4 py-3">Typ</th>
-                            <th className="px-4 py-3">Situation</th>
-                            <th className="px-4 py-3 text-right">Aktionen</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {playbookItems.filter(item => playbookFilter === 'all' || item.type === playbookFilter).map(item => (
-                            <tr key={item.id} className="border-b border-gray-700/50 hover:bg-gray-800/30">
-                              <td className="px-4 py-3 font-bold text-white">{item.title}</td>
-                              <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.type === 'Offensive' ? 'bg-brand/20 text-brand' : 'bg-purple-500/20 text-purple-400'}`}>{item.type}</span></td>
-                              <td className="px-4 py-3">{item.situation}</td>
-                              <td className="px-4 py-3 text-right">
-                                <button onClick={() => handleEditPlaybook(item)} className="text-blue-400 hover:text-blue-300 p-1"><Edit2 size={16} /></button>
-                                <button onClick={() => handleDeletePlaybook(item.id)} className="text-red-400 hover:text-red-300 p-1 ml-2"><Trash2 size={16} /></button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-bold text-white">Trainingspläne verwalten</h4>
+                  <button onClick={handleAddTraining} className="bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center">
+                    <Plus size={16} className="mr-1" /> New Plan
+                  </button>
                 </div>
-              )}
 
-              {taktikTab === 'training' && (
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="font-bold text-white">Trainingspläne verwalten</h4>
-                    <button onClick={handleAddTraining} className="bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center">
-                      <Plus size={16} className="mr-1" /> New Plan
-                    </button>
-                  </div>
-
-                  {editingTrainingId ? (
+                {editingTrainingId ? (
                     <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-6">
                       <h5 className="text-white font-bold mb-4">Trainingsplan bearbeiten</h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -939,8 +695,7 @@ export default function Admin({
                       </table>
                     </div>
                   )}
-                </div>
-              )}
+              </div>
             </div>
           )}
 
