@@ -11,6 +11,57 @@ import Campus from './components/Campus';
 import Admin from './components/Admin';
 import { Notification, Player, Coach, TrainingPlan, CampusArticle, Termin, CoachNews, AppUser, PlaybookItem } from './types';
 
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | null | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+    tenantId: string | null | undefined;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  }
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
 export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [userRole, setUserRole] = useState<string>('guest');
@@ -61,22 +112,23 @@ export default function App() {
   useEffect(() => {
     const unsubPlayers = onSnapshot(collection(db, 'players'), (snapshot) => {
       setPlayers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player)));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'players'));
+    
     const unsubCoaches = onSnapshot(collection(db, 'coaches'), (snapshot) => {
       setCoaches(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Coach)));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'coaches'));
+    
     const unsubCampus = onSnapshot(collection(db, 'campus'), (snapshot) => {
       setCampusArticles(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CampusArticle)));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'campus'));
+    
     const unsubTermine = onSnapshot(collection(db, 'termine'), (snapshot) => {
       setTermine(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Termin)));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'termine'));
+    
     const unsubNews = onSnapshot(collection(db, 'news'), (snapshot) => {
       setNews(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CoachNews)));
-    });
-    const unsubNotifications = onSnapshot(collection(db, 'notifications'), (snapshot) => {
-      setNotifications(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'news'));
 
     return () => {
       unsubPlayers();
@@ -84,7 +136,6 @@ export default function App() {
       unsubCampus();
       unsubTermine();
       unsubNews();
-      unsubNotifications();
     };
   }, []);
 
@@ -93,27 +144,34 @@ export default function App() {
 
     let unsubPlaybook: () => void = () => {};
     let unsubTraining: () => void = () => {};
+    let unsubNotifications: () => void = () => {};
     
+    unsubNotifications = onSnapshot(collection(db, 'notifications'), (snapshot) => {
+      setNotifications(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'notifications'));
+
     if (userRole === 'player' || userRole === 'coach' || userRole === 'admin') {
       unsubPlaybook = onSnapshot(collection(db, 'playbook'), (snapshot) => {
         setPlaybookItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PlaybookItem)));
-      });
+      }, (error) => handleFirestoreError(error, OperationType.GET, 'playbook'));
+      
       unsubTraining = onSnapshot(collection(db, 'trainingPlans'), (snapshot) => {
         setTrainingPlans(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainingPlan)));
-      });
+      }, (error) => handleFirestoreError(error, OperationType.GET, 'trainingPlans'));
     }
 
     let unsubUsers: () => void = () => {};
     if (userRole === 'admin') {
       unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
         setAppUsers(snapshot.docs.map(doc => doc.data() as AppUser));
-      });
+      }, (error) => handleFirestoreError(error, OperationType.GET, 'users'));
     }
 
     return () => {
       unsubPlaybook();
       unsubTraining();
       unsubUsers();
+      unsubNotifications();
     };
   }, [isAuthReady, user, userRole]);
 
@@ -136,7 +194,7 @@ export default function App() {
       const newNotif: Notification = { ...notif, id: newId, date: new Date().toISOString(), readBy: [] };
       await setDoc(doc(db, 'notifications', newId), newNotif);
     } catch (error) {
-      console.error("Error adding notification:", error);
+      handleFirestoreError(error, OperationType.CREATE, 'notifications');
     }
   };
 
@@ -147,7 +205,7 @@ export default function App() {
         readBy: arrayUnion(user.uid)
       });
     } catch (error) {
-      console.error("Error marking notification as read:", error);
+      handleFirestoreError(error, OperationType.UPDATE, `notifications/${id}`);
     }
   };
 
