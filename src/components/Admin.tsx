@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Player, TrainingPlan, CampusArticle, Termin, CoachNews, AppUser, PlaybookItem } from '../types';
+import { Player, Coach, TrainingPlan, CampusArticle, Termin, CoachNews, AppUser, PlaybookItem } from '../types';
 import { Users, Calendar, Target, BookOpen, Plus, Edit2, Trash2, Save, X, Info, Image as ImageIcon, Megaphone, Database, Shield, Upload, FileText } from 'lucide-react';
 import { doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -8,6 +8,7 @@ import { initialPlayers, initialTraining, initialCampus, initialTermine, initial
 
 export default function Admin({ 
   players, setPlayers,
+  coaches, setCoaches,
   playbookItems, setPlaybookItems,
   trainingPlans, setTrainingPlans,
   campusArticles, setCampusArticles,
@@ -17,6 +18,7 @@ export default function Admin({
   currentUserRole
 }: { 
   players: Player[], setPlayers: any,
+  coaches: Coach[], setCoaches: any,
   playbookItems: PlaybookItem[], setPlaybookItems: any,
   trainingPlans: TrainingPlan[], setTrainingPlans: any,
   campusArticles: CampusArticle[], setCampusArticles: any,
@@ -26,6 +28,7 @@ export default function Admin({
   currentUserRole: string
 }) {
   const [adminTab, setAdminTab] = useState('spieler');
+  const [teamTab, setTeamTab] = useState<'players' | 'coaches'>('players');
   const [isSeeding, setIsSeeding] = useState(false);
 
   const cleanUndefined = (obj: any): any => {
@@ -65,6 +68,10 @@ export default function Admin({
   // Player Edit State
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Player>>({});
+
+  // Coach Edit State
+  const [editingCoachId, setEditingCoachId] = useState<string | null>(null);
+  const [coachForm, setCoachForm] = useState<Partial<Coach>>({});
 
   // Termin Edit State
   const [editingTerminId, setEditingTerminId] = useState<string | null>(null);
@@ -126,6 +133,40 @@ export default function Admin({
     } catch (error) {
       console.error("Error adding player:", error);
       alert("Fehler beim Hinzufügen des Spielers: " + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+
+  // --- Coach Handlers ---
+  const handleEditCoach = (coach: Coach) => { setEditingCoachId(coach.id); setCoachForm(coach); };
+  const handleSaveCoach = async () => {
+    if (!editingCoachId) return;
+    try {
+      const updatedCoach = cleanUndefined({ ...coaches.find(c => c.id === editingCoachId), ...coachForm }) as Coach;
+      await setDoc(doc(db, 'coaches', editingCoachId), updatedCoach);
+      setEditingCoachId(null);
+    } catch (error) {
+      console.error("Error saving coach:", error);
+      alert("Fehler beim Speichern des Trainers: " + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+  const handleDeleteCoach = async (id: string) => {
+    if (confirm('Trainer wirklich löschen?')) {
+      try {
+        await deleteDoc(doc(db, 'coaches', id));
+      } catch (error) {
+        console.error("Error deleting coach:", error);
+        alert("Fehler beim Löschen des Trainers: " + (error instanceof Error ? error.message : String(error)));
+      }
+    }
+  };
+  const handleAddCoach = async () => {
+    try {
+      const newCoach: Coach = { id: Date.now().toString(), name: 'Neuer Trainer', role: 'Trainer' };
+      await setDoc(doc(db, 'coaches', newCoach.id), newCoach);
+      handleEditCoach(newCoach);
+    } catch (error) {
+      console.error("Error adding coach:", error);
+      alert("Fehler beim Hinzufügen des Trainers: " + (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -455,6 +496,24 @@ export default function Admin({
     }
   };
 
+  // --- User Handlers ---
+  const handleRoleChange = async (uid: string, newRole: string) => {
+    if (newRole === 'admin') {
+      if (!confirm('Möchtest du diesem Benutzer wirklich Admin-Rechte geben?')) return;
+    }
+    const userToChange = appUsers.find(u => u.uid === uid);
+    if (userToChange?.role === 'admin' && newRole !== 'admin') {
+      if (!confirm('Möchtest du diesem Benutzer wirklich die Admin-Rechte entziehen?')) return;
+    }
+    
+    try {
+      await updateDoc(doc(db, 'users', uid), { role: newRole });
+    } catch (error) {
+      console.error("Error updating role:", error);
+      alert("Fehler beim Ändern der Rolle: " + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row gap-6">
@@ -468,7 +527,7 @@ export default function Admin({
             </div>
             <nav className="flex flex-col p-2 gap-1">
               <button onClick={() => setAdminTab('spieler')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${adminTab === 'spieler' ? 'bg-brand/20 text-brand' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}>
-                <Users size={18} /> Spielerverwaltung
+                <Users size={18} /> Teamverwaltung
               </button>
               <button onClick={() => setAdminTab('termine')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${adminTab === 'termine' ? 'bg-brand/20 text-brand' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}>
                 <Calendar size={18} /> Terminverwaltung
@@ -503,63 +562,135 @@ export default function Admin({
         {/* Admin Content Area */}
         <div className="flex-grow">
           
-          {/* ================= SPIELERVERWALTUNG ================= */}
+          {/* ================= TEAMVERWALTUNG ================= */}
           {adminTab === 'spieler' && (
             <div className="bg-dark-card border border-gray-700 rounded-xl p-6 shadow-lg">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-white">Kader verwalten</h3>
-                <button onClick={handleAddPlayer} className="bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center">
-                  <Plus size={16} className="mr-1" /> Neuer Spieler
-                </button>
+                <h3 className="text-xl font-bold text-white">Team verwalten</h3>
+                <div className="flex bg-gray-800 rounded-lg p-1">
+                  <button
+                    onClick={() => setTeamTab('players')}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${teamTab === 'players' ? 'bg-gray-700 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
+                  >
+                    Spieler
+                  </button>
+                  <button
+                    onClick={() => setTeamTab('coaches')}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${teamTab === 'coaches' ? 'bg-gray-700 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
+                  >
+                    Trainer & Betreuer
+                  </button>
+                </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-gray-300">
-                  <thead className="text-xs text-gray-400 uppercase bg-gray-800/50 border-b border-gray-700">
-                    <tr>
-                      <th className="px-4 py-3">#</th>
-                      <th className="px-4 py-3">Name</th>
-                      <th className="px-4 py-3">Position</th>
-                      <th className="px-4 py-3">Typ</th>
-                      <th className="px-4 py-3 text-right">Aktionen</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {players.map(player => (
-                      <tr key={player.id} className="border-b border-gray-700/50 hover:bg-gray-800/30">
-                        {editingPlayerId === player.id ? (
-                          <>
-                            <td className="px-4 py-2"><input type="number" value={editForm.number} onChange={e => setEditForm({...editForm, number: +e.target.value})} className="w-16 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:border-brand outline-none" /></td>
-                            <td className="px-4 py-2"><input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:border-brand outline-none" /></td>
-                            <td className="px-4 py-2"><input type="text" value={editForm.position} onChange={e => setEditForm({...editForm, position: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:border-brand outline-none" /></td>
-                            <td className="px-4 py-2">
-                              <select value={editForm.type} onChange={e => setEditForm({...editForm, type: e.target.value as 'goalie'|'field'})} className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:border-brand outline-none">
-                                <option value="field">Feldspieler</option>
-                                <option value="goalie">Goalie</option>
-                              </select>
-                            </td>
-                            <td className="px-4 py-2 text-right">
-                              <button onClick={handleSavePlayer} className="text-green-400 hover:text-green-300 p-1"><Save size={18} /></button>
-                              <button onClick={() => setEditingPlayerId(null)} className="text-gray-400 hover:text-white p-1 ml-1"><X size={18} /></button>
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td className="px-4 py-3 font-bold text-white">{player.number}</td>
-                            <td className="px-4 py-3 font-medium text-white">{player.name} {player.isCaptain && <span className="text-yellow-500 text-[10px] ml-1 border border-yellow-500/30 px-1 rounded">C</span>}</td>
-                            <td className="px-4 py-3">{player.position}</td>
-                            <td className="px-4 py-3">{player.type === 'goalie' ? 'Goalie' : 'Feldspieler'}</td>
-                            <td className="px-4 py-3 text-right">
-                              <button onClick={() => handleEditPlayer(player)} className="text-blue-400 hover:text-blue-300 p-1"><Edit2 size={16} /></button>
-                              <button onClick={() => handleDeletePlayer(player.id)} className="text-red-400 hover:text-red-300 p-1 ml-2"><Trash2 size={16} /></button>
-                            </td>
-                          </>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {teamTab === 'players' && (
+                <>
+                  <div className="flex justify-end mb-4">
+                    <button onClick={handleAddPlayer} className="bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center">
+                      <Plus size={16} className="mr-1" /> Neuer Spieler
+                    </button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-gray-300">
+                      <thead className="text-xs text-gray-400 uppercase bg-gray-800/50 border-b border-gray-700">
+                        <tr>
+                          <th className="px-4 py-3">#</th>
+                          <th className="px-4 py-3">Name</th>
+                          <th className="px-4 py-3">Position</th>
+                          <th className="px-4 py-3">Typ</th>
+                          <th className="px-4 py-3 text-right">Aktionen</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {players.map(player => (
+                          <tr key={player.id} className="border-b border-gray-700/50 hover:bg-gray-800/30">
+                            {editingPlayerId === player.id ? (
+                              <>
+                                <td className="px-4 py-2"><input type="number" value={editForm.number} onChange={e => setEditForm({...editForm, number: +e.target.value})} className="w-16 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:border-brand outline-none" /></td>
+                                <td className="px-4 py-2"><input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:border-brand outline-none" /></td>
+                                <td className="px-4 py-2"><input type="text" value={editForm.position} onChange={e => setEditForm({...editForm, position: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:border-brand outline-none" /></td>
+                                <td className="px-4 py-2">
+                                  <select value={editForm.type} onChange={e => setEditForm({...editForm, type: e.target.value as 'goalie'|'field'})} className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:border-brand outline-none">
+                                    <option value="field">Feldspieler</option>
+                                    <option value="goalie">Goalie</option>
+                                  </select>
+                                </td>
+                                <td className="px-4 py-2 text-right">
+                                  <button onClick={handleSavePlayer} className="text-green-400 hover:text-green-300 p-1"><Save size={18} /></button>
+                                  <button onClick={() => setEditingPlayerId(null)} className="text-gray-400 hover:text-white p-1 ml-1"><X size={18} /></button>
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="px-4 py-3 font-bold text-white">{player.number}</td>
+                                <td className="px-4 py-3 font-medium text-white">{player.name} {player.isCaptain && <span className="text-yellow-500 text-[10px] ml-1 border border-yellow-500/30 px-1 rounded">C</span>}</td>
+                                <td className="px-4 py-3">{player.position}</td>
+                                <td className="px-4 py-3">{player.type === 'goalie' ? 'Goalie' : 'Feldspieler'}</td>
+                                <td className="px-4 py-3 text-right">
+                                  <button onClick={() => handleEditPlayer(player)} className="text-blue-400 hover:text-blue-300 p-1"><Edit2 size={16} /></button>
+                                  <button onClick={() => handleDeletePlayer(player.id)} className="text-red-400 hover:text-red-300 p-1 ml-2"><Trash2 size={16} /></button>
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+
+              {teamTab === 'coaches' && (
+                <>
+                  <div className="flex justify-end mb-4">
+                    <button onClick={handleAddCoach} className="bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center">
+                      <Plus size={16} className="mr-1" /> Neuer Trainer
+                    </button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-gray-300">
+                      <thead className="text-xs text-gray-400 uppercase bg-gray-800/50 border-b border-gray-700">
+                        <tr>
+                          <th className="px-4 py-3">Name</th>
+                          <th className="px-4 py-3">Rolle</th>
+                          <th className="px-4 py-3">Email</th>
+                          <th className="px-4 py-3">Telefon</th>
+                          <th className="px-4 py-3 text-right">Aktionen</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {coaches.map(coach => (
+                          <tr key={coach.id} className="border-b border-gray-700/50 hover:bg-gray-800/30">
+                            {editingCoachId === coach.id ? (
+                              <>
+                                <td className="px-4 py-2"><input type="text" value={coachForm.name || ''} onChange={e => setCoachForm({...coachForm, name: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:border-brand outline-none" placeholder="Name" /></td>
+                                <td className="px-4 py-2"><input type="text" value={coachForm.role || ''} onChange={e => setCoachForm({...coachForm, role: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:border-brand outline-none" placeholder="Rolle" /></td>
+                                <td className="px-4 py-2"><input type="email" value={coachForm.email || ''} onChange={e => setCoachForm({...coachForm, email: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:border-brand outline-none" placeholder="Email" /></td>
+                                <td className="px-4 py-2"><input type="text" value={coachForm.phone || ''} onChange={e => setCoachForm({...coachForm, phone: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:border-brand outline-none" placeholder="Telefon" /></td>
+                                <td className="px-4 py-2 text-right">
+                                  <button onClick={handleSaveCoach} className="text-green-400 hover:text-green-300 p-1"><Save size={18} /></button>
+                                  <button onClick={() => setEditingCoachId(null)} className="text-gray-400 hover:text-white p-1 ml-1"><X size={18} /></button>
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="px-4 py-3 font-medium text-white">{coach.name}</td>
+                                <td className="px-4 py-3">{coach.role}</td>
+                                <td className="px-4 py-3 text-gray-400">{coach.email || '-'}</td>
+                                <td className="px-4 py-3 text-gray-400">{coach.phone || '-'}</td>
+                                <td className="px-4 py-3 text-right">
+                                  <button onClick={() => handleEditCoach(coach)} className="text-blue-400 hover:text-blue-300 p-1"><Edit2 size={16} /></button>
+                                  <button onClick={() => handleDeleteCoach(coach.id)} className="text-red-400 hover:text-red-300 p-1 ml-2"><Trash2 size={16} /></button>
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -1072,7 +1203,7 @@ export default function Admin({
                         <td className="px-4 py-3">
                           <select 
                             value={u.role}
-                            onChange={(e) => updateDoc(doc(db, 'users', u.uid), { role: e.target.value })}
+                            onChange={(e) => handleRoleChange(u.uid, e.target.value)}
                             className={`bg-gray-700 border border-transparent hover:border-gray-500 focus:border-brand rounded px-2 py-1 text-[10px] font-bold uppercase outline-none transition-colors ${
                               u.role === 'admin' ? 'text-red-400' : 
                               u.role === 'coach' ? 'text-brand' : 

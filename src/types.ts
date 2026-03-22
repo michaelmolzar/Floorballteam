@@ -1,3 +1,11 @@
+export type Coach = {
+  id: string;
+  name: string;
+  role: string;
+  email?: string;
+  phone?: string;
+};
+
 export type PlayerStats = {
   gamesPlayed: number;
   goals?: number;

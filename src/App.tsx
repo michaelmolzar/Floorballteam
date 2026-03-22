@@ -9,7 +9,7 @@ import Termine from './components/Termine';
 import Taktik from './components/Taktik';
 import Campus from './components/Campus';
 import Admin from './components/Admin';
-import { Notification, Player, TrainingPlan, CampusArticle, Termin, CoachNews, AppUser, PlaybookItem } from './types';
+import { Notification, Player, Coach, TrainingPlan, CampusArticle, Termin, CoachNews, AppUser, PlaybookItem } from './types';
 
 export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -20,6 +20,7 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const [players, setPlayers] = useState<Player[]>([]);
+  const [coaches, setCoaches] = useState<Coach[]>([]);
   const [playbookItems, setPlaybookItems] = useState<PlaybookItem[]>([]);
   const [trainingPlans, setTrainingPlans] = useState<TrainingPlan[]>([]);
   const [campusArticles, setCampusArticles] = useState<CampusArticle[]>([]);
@@ -61,6 +62,9 @@ export default function App() {
     const unsubPlayers = onSnapshot(collection(db, 'players'), (snapshot) => {
       setPlayers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player)));
     });
+    const unsubCoaches = onSnapshot(collection(db, 'coaches'), (snapshot) => {
+      setCoaches(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Coach)));
+    });
     const unsubCampus = onSnapshot(collection(db, 'campus'), (snapshot) => {
       setCampusArticles(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CampusArticle)));
     });
@@ -76,6 +80,7 @@ export default function App() {
 
     return () => {
       unsubPlayers();
+      unsubCoaches();
       unsubCampus();
       unsubTermine();
       unsubNews();
@@ -320,6 +325,7 @@ export default function App() {
         {activeTab === 'admin' && (
           <Admin 
             players={players} setPlayers={setPlayers}
+            coaches={coaches} setCoaches={setCoaches}
             playbookItems={playbookItems} setPlaybookItems={setPlaybookItems}
             trainingPlans={trainingPlans} setTrainingPlans={setTrainingPlans}
             campusArticles={campusArticles} setCampusArticles={setCampusArticles}
