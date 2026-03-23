@@ -127,7 +127,7 @@ export default function Admin({
   };
   const handleAddPlayer = async () => {
     try {
-      const newPlayer: Player = { id: Date.now().toString(), name: 'Neuer Spieler', number: 0, position: 'Position', type: 'field', stats: { gamesPlayed: 0, goals: 0, assists: 0, penaltyMinutes: 0 } };
+      const newPlayer: Player = { id: Date.now().toString(), name: 'Neuer Spieler', number: 0, type: 'field', stats: { gamesPlayed: 0, goals: 0, assists: 0, penaltyMinutes: 0 } };
       await setDoc(doc(db, 'players', newPlayer.id), newPlayer);
       handleEditPlayer(newPlayer);
     } catch (error) {
@@ -371,16 +371,28 @@ export default function Admin({
       return;
     }
 
+    if (file.size > 700 * 1024) {
+      alert('Die PDF-Datei ist zu groß (max. 700KB). Bitte komprimiere die Datei oder verwende einen Link.');
+      return;
+    }
+
     setUploadingPlaybookPdf(true);
     try {
-      const storageRef = ref(storage, `playbook/${editingPlaybookId}_${Date.now()}.pdf`);
-      await uploadBytes(storageRef, file);
-      const downloadUrl = await getDownloadURL(storageRef);
-      setPlaybookForm({ ...playbookForm, pdfUrl: downloadUrl });
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        setPlaybookForm({ ...playbookForm, pdfUrl: base64 });
+        setUploadingPlaybookPdf(false);
+      };
+      reader.onerror = (error) => {
+        console.error('Error reading PDF:', error);
+        alert('Fehler beim Lesen der PDF-Datei.');
+        setUploadingPlaybookPdf(false);
+      };
     } catch (error) {
       console.error('Error uploading PDF:', error);
       alert('Fehler beim Hochladen der PDF: ' + (error instanceof Error ? error.message : String(error)));
-    } finally {
       setUploadingPlaybookPdf(false);
     }
   };
@@ -428,16 +440,28 @@ export default function Admin({
       return;
     }
 
+    if (file.size > 700 * 1024) {
+      alert('Die PDF-Datei ist zu groß (max. 700KB). Bitte komprimiere die Datei oder verwende einen Link.');
+      return;
+    }
+
     setUploadingPdf(true);
     try {
-      const storageRef = ref(storage, `trainingPlans/${editingTrainingId}_${Date.now()}.pdf`);
-      await uploadBytes(storageRef, file);
-      const downloadUrl = await getDownloadURL(storageRef);
-      setTrainingForm({ ...trainingForm, pdfUrl: downloadUrl });
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        setTrainingForm({ ...trainingForm, pdfUrl: base64 });
+        setUploadingPdf(false);
+      };
+      reader.onerror = (error) => {
+        console.error('Error reading PDF:', error);
+        alert('Fehler beim Lesen der PDF-Datei.');
+        setUploadingPdf(false);
+      };
     } catch (error) {
       console.error('Error uploading PDF:', error);
       alert('Fehler beim Hochladen der PDF: ' + (error instanceof Error ? error.message : String(error)));
-    } finally {
       setUploadingPdf(false);
     }
   };
@@ -596,8 +620,11 @@ export default function Admin({
                         <tr>
                           <th className="px-4 py-3">#</th>
                           <th className="px-4 py-3">Name</th>
-                          <th className="px-4 py-3">Position</th>
                           <th className="px-4 py-3">Typ</th>
+                          <th className="px-4 py-3 text-center" title="Spiele">SP</th>
+                          <th className="px-4 py-3 text-center" title="Tore / Save Percentage">T / SV%</th>
+                          <th className="px-4 py-3 text-center" title="Assists">A</th>
+                          <th className="px-4 py-3 text-center" title="Strafminuten / Goals Against Average">SM / GAA</th>
                           <th className="px-4 py-3 text-right">Aktionen</th>
                         </tr>
                       </thead>
@@ -608,13 +635,25 @@ export default function Admin({
                               <>
                                 <td className="px-4 py-2"><input type="number" value={editForm.number} onChange={e => setEditForm({...editForm, number: +e.target.value})} className="w-16 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:border-brand outline-none" /></td>
                                 <td className="px-4 py-2"><input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:border-brand outline-none" /></td>
-                                <td className="px-4 py-2"><input type="text" value={editForm.position} onChange={e => setEditForm({...editForm, position: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:border-brand outline-none" /></td>
                                 <td className="px-4 py-2">
                                   <select value={editForm.type} onChange={e => setEditForm({...editForm, type: e.target.value as 'goalie'|'field'})} className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white focus:border-brand outline-none">
                                     <option value="field">Feldspieler</option>
                                     <option value="goalie">Goalie</option>
                                   </select>
                                 </td>
+                                <td className="px-2 py-2"><input type="number" value={editForm.stats?.gamesPlayed || 0} onChange={e => setEditForm({...editForm, stats: {...editForm.stats!, gamesPlayed: +e.target.value}})} className="w-12 bg-gray-700 border border-gray-600 rounded px-1 py-1 text-white text-center focus:border-brand outline-none" /></td>
+                                {editForm.type === 'goalie' ? (
+                                  <>
+                                    <td className="px-2 py-2" colSpan={2}><input type="number" step="0.1" value={editForm.stats?.savePercentage || 0} onChange={e => setEditForm({...editForm, stats: {...editForm.stats!, savePercentage: +e.target.value}})} className="w-full bg-gray-700 border border-gray-600 rounded px-1 py-1 text-white text-center focus:border-brand outline-none" title="Save Percentage" /></td>
+                                    <td className="px-2 py-2"><input type="number" step="0.1" value={editForm.stats?.goalsAgainstAverage || 0} onChange={e => setEditForm({...editForm, stats: {...editForm.stats!, goalsAgainstAverage: +e.target.value}})} className="w-12 bg-gray-700 border border-gray-600 rounded px-1 py-1 text-white text-center focus:border-brand outline-none" title="GAA" /></td>
+                                  </>
+                                ) : (
+                                  <>
+                                    <td className="px-2 py-2"><input type="number" value={editForm.stats?.goals || 0} onChange={e => setEditForm({...editForm, stats: {...editForm.stats!, goals: +e.target.value}})} className="w-12 bg-gray-700 border border-gray-600 rounded px-1 py-1 text-white text-center focus:border-brand outline-none" /></td>
+                                    <td className="px-2 py-2"><input type="number" value={editForm.stats?.assists || 0} onChange={e => setEditForm({...editForm, stats: {...editForm.stats!, assists: +e.target.value}})} className="w-12 bg-gray-700 border border-gray-600 rounded px-1 py-1 text-white text-center focus:border-brand outline-none" /></td>
+                                    <td className="px-2 py-2"><input type="number" value={editForm.stats?.penaltyMinutes || 0} onChange={e => setEditForm({...editForm, stats: {...editForm.stats!, penaltyMinutes: +e.target.value}})} className="w-12 bg-gray-700 border border-gray-600 rounded px-1 py-1 text-white text-center focus:border-brand outline-none" /></td>
+                                  </>
+                                )}
                                 <td className="px-4 py-2 text-right">
                                   <button onClick={handleSavePlayer} className="text-green-400 hover:text-green-300 p-1"><Save size={18} /></button>
                                   <button onClick={() => setEditingPlayerId(null)} className="text-gray-400 hover:text-white p-1 ml-1"><X size={18} /></button>
@@ -624,8 +663,20 @@ export default function Admin({
                               <>
                                 <td className="px-4 py-3 font-bold text-white">{player.number}</td>
                                 <td className="px-4 py-3 font-medium text-white">{player.name} {player.isCaptain && <span className="text-yellow-500 text-[10px] ml-1 border border-yellow-500/30 px-1 rounded">C</span>}</td>
-                                <td className="px-4 py-3">{player.position}</td>
                                 <td className="px-4 py-3">{player.type === 'goalie' ? 'Goalie' : 'Feldspieler'}</td>
+                                <td className="px-4 py-3 text-center text-gray-300">{player.stats?.gamesPlayed || 0}</td>
+                                {player.type === 'goalie' ? (
+                                  <>
+                                    <td className="px-4 py-3 text-center text-gray-300" colSpan={2} title="Save Percentage">{player.stats?.savePercentage || 0}%</td>
+                                    <td className="px-4 py-3 text-center text-gray-300" title="GAA">{player.stats?.goalsAgainstAverage || 0}</td>
+                                  </>
+                                ) : (
+                                  <>
+                                    <td className="px-4 py-3 text-center text-gray-300">{player.stats?.goals || 0}</td>
+                                    <td className="px-4 py-3 text-center text-gray-300">{player.stats?.assists || 0}</td>
+                                    <td className="px-4 py-3 text-center text-gray-300">{player.stats?.penaltyMinutes || 0}</td>
+                                  </>
+                                )}
                                 <td className="px-4 py-3 text-right">
                                   <button onClick={() => handleEditPlayer(player)} className="text-blue-400 hover:text-blue-300 p-1"><Edit2 size={16} /></button>
                                   <button onClick={() => handleDeletePlayer(player.id)} className="text-red-400 hover:text-red-300 p-1 ml-2"><Trash2 size={16} /></button>
@@ -831,7 +882,7 @@ export default function Admin({
                               </div>
                             ) : (
                               <>
-                                <span className="text-sm">Klicken zum Hochladen (PDF)</span>
+                                <span className="text-sm">Klicken zum Hochladen (PDF, max. 700KB)</span>
                                 <input 
                                   type="file" 
                                   accept="application/pdf" 
@@ -933,7 +984,7 @@ export default function Admin({
                               </div>
                             ) : (
                               <>
-                                <span className="text-sm">Klicken zum Hochladen (PDF)</span>
+                                <span className="text-sm">Klicken zum Hochladen (PDF, max. 700KB)</span>
                                 <input 
                                   type="file" 
                                   accept="application/pdf" 

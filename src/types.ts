@@ -19,7 +19,6 @@ export type Player = {
   id: string;
   name: string;
   number: number;
-  position: string;
   type: 'goalie' | 'field';
   isCaptain?: boolean;
   stats: PlayerStats;

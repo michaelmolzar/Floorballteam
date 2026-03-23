@@ -1,24 +1,12 @@
-import { Handshake, Flame, Scale, Plus, User, X, Edit2, Save, Activity } from 'lucide-react';
+import { Handshake, Flame, Scale, User, X, Activity } from 'lucide-react';
 import { useState } from 'react';
-import { Player, PlayerStats } from '../types';
+import { Player } from '../types';
 
 export default function Team({ players, setPlayers }: { players: Player[], setPlayers: any }) {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
-  const [isEditingStats, setIsEditingStats] = useState(false);
-  const [editForm, setEditForm] = useState<PlayerStats>({ gamesPlayed: 0, goals: 0, assists: 0, penaltyMinutes: 0 });
 
   const openPlayerModal = (player: Player) => {
     setSelectedPlayer(player);
-    setEditForm(player.stats);
-    setIsEditingStats(false);
-  };
-
-  const handleSaveStats = () => {
-    if (!selectedPlayer) return;
-    const updatedPlayer = { ...selectedPlayer, stats: editForm };
-    setPlayers(players.map((p: Player) => p.id === updatedPlayer.id ? updatedPlayer : p));
-    setSelectedPlayer(updatedPlayer);
-    setIsEditingStats(false);
   };
 
   const goalies = players.filter(p => p.type === 'goalie');
@@ -72,7 +60,6 @@ export default function Team({ players, setPlayers }: { players: Player[], setPl
                 <span className="absolute -bottom-2 -right-2 bg-brand text-white text-xs font-bold px-2 py-1 rounded-md">#{player.number}</span>
               </div>
               <p className="font-bold text-white">{player.name}</p>
-              <p className="text-xs text-gray-400">{player.position}</p>
             </div>
           ))}
         </div>
@@ -92,7 +79,6 @@ export default function Team({ players, setPlayers }: { players: Player[], setPl
                 <span className="absolute -bottom-2 -right-2 bg-brand text-white text-xs font-bold px-2 py-1 rounded-md">#{player.number}</span>
               </div>
               <p className="font-bold text-white">{player.name}</p>
-              <p className="text-xs text-gray-400">{player.position}</p>
             </div>
           ))}
         </div>
@@ -107,7 +93,7 @@ export default function Team({ players, setPlayers }: { players: Player[], setPl
                 <User size={20} className="text-brand" />
                 Spielerprofil
               </h3>
-              <button onClick={() => { setSelectedPlayer(null); setIsEditingStats(false); }} className="text-gray-400 hover:text-white"><X size={20}/></button>
+              <button onClick={() => { setSelectedPlayer(null); }} className="text-gray-400 hover:text-white"><X size={20}/></button>
             </div>
             
             <div className="p-6">
@@ -122,7 +108,6 @@ export default function Team({ players, setPlayers }: { players: Player[], setPl
                     {selectedPlayer.name}
                     {selectedPlayer.isCaptain && <span className="text-yellow-500 text-[10px] uppercase font-bold bg-yellow-500/20 px-2 py-0.5 rounded border border-yellow-500/30">Captain</span>}
                   </h2>
-                  <p className="text-brand font-medium">{selectedPlayer.position}</p>
                 </div>
               </div>
 
@@ -130,23 +115,13 @@ export default function Team({ players, setPlayers }: { players: Player[], setPl
               <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
                 <div className="flex justify-between items-center mb-4">
                   <h4 className="font-bold text-white flex items-center gap-2"><Activity size={16} className="text-brand"/> Saison-Statistiken</h4>
-                  <button 
-                    onClick={() => isEditingStats ? handleSaveStats() : setIsEditingStats(true)} 
-                    className={`text-sm font-medium flex items-center gap-1 px-2 py-1 rounded transition-colors ${isEditingStats ? 'bg-brand text-white hover:bg-brand-dark' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
-                  >
-                    {isEditingStats ? <><Save size={14} /> Speichern</> : <><Edit2 size={14} /> Bearbeiten</>}
-                  </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   {/* Spiele */}
                   <div className="bg-dark-bg p-3 rounded-lg border border-gray-700 text-center flex flex-col justify-center">
                     <div className="text-[10px] text-gray-400 uppercase font-bold mb-1 tracking-wider">Spiele</div>
-                    {isEditingStats ? (
-                      <input type="number" min="0" value={editForm.gamesPlayed} onChange={e => setEditForm({...editForm, gamesPlayed: +e.target.value})} className="w-full bg-gray-700 text-white text-center rounded px-2 py-1 focus:outline-none focus:border-brand border border-transparent" />
-                    ) : (
-                      <div className="text-2xl font-bold text-white">{selectedPlayer.stats.gamesPlayed}</div>
-                    )}
+                    <div className="text-2xl font-bold text-white">{selectedPlayer.stats.gamesPlayed}</div>
                   </div>
 
                   {/* Scorerpunkte (Calculated) */}
@@ -154,38 +129,26 @@ export default function Team({ players, setPlayers }: { players: Player[], setPl
                     <div className="absolute inset-0 bg-brand/5"></div>
                     <div className="relative z-10">
                       <div className="text-[10px] text-brand uppercase font-bold mb-1 tracking-wider">Punkte</div>
-                      <div className="text-2xl font-bold text-brand">{isEditingStats ? editForm.goals + editForm.assists : selectedPlayer.stats.goals + selectedPlayer.stats.assists}</div>
+                      <div className="text-2xl font-bold text-brand">{(selectedPlayer.stats.goals || 0) + (selectedPlayer.stats.assists || 0)}</div>
                     </div>
                   </div>
 
                   {/* Tore */}
                   <div className="bg-dark-bg p-3 rounded-lg border border-gray-700 text-center flex flex-col justify-center">
                     <div className="text-[10px] text-gray-400 uppercase font-bold mb-1 tracking-wider">Tore</div>
-                    {isEditingStats ? (
-                      <input type="number" min="0" value={editForm.goals} onChange={e => setEditForm({...editForm, goals: +e.target.value})} className="w-full bg-gray-700 text-white text-center rounded px-2 py-1 focus:outline-none focus:border-brand border border-transparent" />
-                    ) : (
-                      <div className="text-xl font-bold text-white">{selectedPlayer.stats.goals}</div>
-                    )}
+                    <div className="text-xl font-bold text-white">{selectedPlayer.stats.goals || 0}</div>
                   </div>
 
                   {/* Assists */}
                   <div className="bg-dark-bg p-3 rounded-lg border border-gray-700 text-center flex flex-col justify-center">
                     <div className="text-[10px] text-gray-400 uppercase font-bold mb-1 tracking-wider">Assists</div>
-                    {isEditingStats ? (
-                      <input type="number" min="0" value={editForm.assists} onChange={e => setEditForm({...editForm, assists: +e.target.value})} className="w-full bg-gray-700 text-white text-center rounded px-2 py-1 focus:outline-none focus:border-brand border border-transparent" />
-                    ) : (
-                      <div className="text-xl font-bold text-white">{selectedPlayer.stats.assists}</div>
-                    )}
+                    <div className="text-xl font-bold text-white">{selectedPlayer.stats.assists || 0}</div>
                   </div>
 
                   {/* Strafminuten */}
                   <div className="bg-dark-bg p-3 rounded-lg border border-gray-700 text-center col-span-2 flex flex-col justify-center">
                     <div className="text-[10px] text-gray-400 uppercase font-bold mb-1 tracking-wider">Strafminuten</div>
-                    {isEditingStats ? (
-                      <input type="number" min="0" value={editForm.penaltyMinutes} onChange={e => setEditForm({...editForm, penaltyMinutes: +e.target.value})} className="w-full max-w-[100px] mx-auto bg-gray-700 text-white text-center rounded px-2 py-1 focus:outline-none focus:border-brand border border-transparent" />
-                    ) : (
-                      <div className="text-xl font-bold text-white">{selectedPlayer.stats.penaltyMinutes} <span className="text-sm text-gray-500 font-normal">Min</span></div>
-                    )}
+                    <div className="text-xl font-bold text-white">{selectedPlayer.stats.penaltyMinutes || 0} <span className="text-sm text-gray-500 font-normal">Min</span></div>
                   </div>
                 </div>
               </div>

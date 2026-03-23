@@ -59,7 +59,7 @@ export default function Taktik({ trainingPlans, playbookItems }: { trainingPlans
                 </div>
               </div>
               {item.pdfUrl ? (
-                <a href={item.pdfUrl} target="_blank" rel="noopener noreferrer" className="w-full bg-brand hover:bg-brand-dark text-white py-2 rounded-lg font-medium transition-colors text-sm flex items-center justify-center">
+                <a href={item.pdfUrl} download={`${item.title}.pdf`} target="_blank" rel="noopener noreferrer" className="w-full bg-brand hover:bg-brand-dark text-white py-2 rounded-lg font-medium transition-colors text-sm flex items-center justify-center">
                   PDF Ansehen / Download
                 </a>
               ) : (
@@ -97,7 +97,7 @@ export default function Taktik({ trainingPlans, playbookItems }: { trainingPlans
                 <p className="text-gray-300 font-medium">{plan.focus}</p>
               </div>
               {plan.pdfUrl ? (
-                <a href={plan.pdfUrl} target="_blank" rel="noopener noreferrer" className="w-full bg-brand hover:bg-brand-dark text-white py-2 rounded-lg font-medium transition-colors text-sm flex items-center justify-center">
+                <a href={plan.pdfUrl} download={`${plan.title}.pdf`} target="_blank" rel="noopener noreferrer" className="w-full bg-brand hover:bg-brand-dark text-white py-2 rounded-lg font-medium transition-colors text-sm flex items-center justify-center">
                   PDF Ansehen / Download
                 </a>
               ) : (
