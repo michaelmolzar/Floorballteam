@@ -4,7 +4,6 @@ import { TrainingPlan, PlaybookItem } from '../types';
 
 export default function Taktik({ trainingPlans, playbookItems }: { trainingPlans: TrainingPlan[], playbookItems: PlaybookItem[] }) {
   const [activeSubTab, setActiveSubTab] = useState<'playbook' | 'training' | 'gegner'>('playbook');
-  const [isCoach, setIsCoach] = useState(false); // Simulate coach role
   const [selectedPdf, setSelectedPdf] = useState<{url: string, title: string} | null>(null);
 
   return (
@@ -29,17 +28,6 @@ export default function Taktik({ trainingPlans, playbookItems }: { trainingPlans
             className={`${activeSubTab === 'gegner' ? 'bg-brand text-white' : 'bg-gray-800 hover:bg-gray-700 text-gray-300'} px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors flex items-center`}
           >
             <Lock size={14} className="mr-2 opacity-70" />Gegneranalyse
-          </button>
-        </div>
-        
-        {/* Simulate Coach Role Toggle */}
-        <div className="flex items-center gap-2 bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
-          <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">Trainer-Ansicht</span>
-          <button 
-            onClick={() => setIsCoach(!isCoach)}
-            className={`w-10 h-5 rounded-full relative transition-colors ${isCoach ? 'bg-brand' : 'bg-gray-600'}`}
-          >
-            <div className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-transform ${isCoach ? 'translate-x-6' : 'translate-x-1'}`}></div>
           </button>
         </div>
       </div>
