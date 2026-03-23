@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Lock, AlertTriangle, FileText, Calendar as CalendarIcon, BookOpen } from 'lucide-react';
+import { Lock, AlertTriangle, FileText, Calendar as CalendarIcon, BookOpen, X, Download, Eye } from 'lucide-react';
 import { TrainingPlan, PlaybookItem } from '../types';
 
 export default function Taktik({ trainingPlans, playbookItems }: { trainingPlans: TrainingPlan[], playbookItems: PlaybookItem[] }) {
   const [activeSubTab, setActiveSubTab] = useState<'playbook' | 'training' | 'gegner'>('playbook');
   const [isCoach, setIsCoach] = useState(false); // Simulate coach role
+  const [selectedPdf, setSelectedPdf] = useState<{url: string, title: string} | null>(null);
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -59,9 +60,22 @@ export default function Taktik({ trainingPlans, playbookItems }: { trainingPlans
                 </div>
               </div>
               {item.pdfUrl ? (
-                <a href={item.pdfUrl} download={`${item.title}.pdf`} target="_blank" rel="noopener noreferrer" className="w-full bg-brand hover:bg-brand-dark text-white py-2 rounded-lg font-medium transition-colors text-sm flex items-center justify-center">
-                  PDF Ansehen / Download
-                </a>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setSelectedPdf({url: item.pdfUrl!, title: item.title})} 
+                    className="flex-1 bg-brand hover:bg-brand-dark text-white py-2 rounded-lg font-medium transition-colors text-sm flex items-center justify-center"
+                  >
+                    <Eye size={16} className="mr-2" /> Ansehen
+                  </button>
+                  <a 
+                    href={item.pdfUrl} 
+                    download={`${item.title}.pdf`} 
+                    className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center"
+                    title="Herunterladen"
+                  >
+                    <Download size={16} />
+                  </a>
+                </div>
               ) : (
                 <button disabled className="w-full bg-gray-800 text-gray-500 py-2 rounded-lg font-medium text-sm cursor-not-allowed">
                   Keine PDF verfügbar
@@ -97,9 +111,22 @@ export default function Taktik({ trainingPlans, playbookItems }: { trainingPlans
                 <p className="text-gray-300 font-medium">{plan.focus}</p>
               </div>
               {plan.pdfUrl ? (
-                <a href={plan.pdfUrl} download={`${plan.title}.pdf`} target="_blank" rel="noopener noreferrer" className="w-full bg-brand hover:bg-brand-dark text-white py-2 rounded-lg font-medium transition-colors text-sm flex items-center justify-center">
-                  PDF Ansehen / Download
-                </a>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setSelectedPdf({url: plan.pdfUrl!, title: plan.title})} 
+                    className="flex-1 bg-brand hover:bg-brand-dark text-white py-2 rounded-lg font-medium transition-colors text-sm flex items-center justify-center"
+                  >
+                    <Eye size={16} className="mr-2" /> Ansehen
+                  </button>
+                  <a 
+                    href={plan.pdfUrl} 
+                    download={`${plan.title}.pdf`} 
+                    className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center"
+                    title="Herunterladen"
+                  >
+                    <Download size={16} />
+                  </a>
+                </div>
               ) : (
                 <button disabled className="w-full bg-gray-800 text-gray-500 py-2 rounded-lg font-medium text-sm cursor-not-allowed">
                   Keine PDF verfügbar
@@ -120,6 +147,36 @@ export default function Taktik({ trainingPlans, playbookItems }: { trainingPlans
           <Lock size={48} className="mx-auto text-gray-600 mb-4" />
           <h3 className="text-xl font-bold text-white mb-2">Gegneranalyse</h3>
           <p className="text-gray-400 max-w-md mx-auto">Dieser Bereich ist passwortgeschützt oder nur für Trainer sichtbar. Hier werden Schwächen und Stärken der kommenden Gegner analysiert.</p>
+        </div>
+      )}
+
+      {/* PDF Viewer Modal */}
+      {selectedPdf && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-dark-card border border-gray-700 rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl relative overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-gray-700 bg-gray-800/50">
+              <h3 className="text-xl font-bold text-white truncate pr-4">{selectedPdf.title}</h3>
+              <div className="flex items-center gap-3 shrink-0">
+                <a 
+                  href={selectedPdf.url} 
+                  download={`${selectedPdf.title}.pdf`}
+                  className="flex items-center gap-2 text-sm bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded transition-colors"
+                >
+                  <Download size={16} /> <span className="hidden sm:inline">Download</span>
+                </a>
+                <button onClick={() => setSelectedPdf(null)} className="text-gray-400 hover:text-white transition-colors p-1 bg-gray-800 hover:bg-gray-700 rounded-full">
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+            <div className="flex-grow bg-gray-900 w-full h-full relative">
+              <iframe 
+                src={`${selectedPdf.url}#toolbar=0`} 
+                className="w-full h-full border-0"
+                title={selectedPdf.title}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>
