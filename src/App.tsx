@@ -149,6 +149,16 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = appSettings.logoUrl || '/logo.svg';
+  }, [appSettings.logoUrl]);
+
+  useEffect(() => {
     if (!isAuthReady || !user) return;
 
     let unsubPlaybook: () => void = () => {};
