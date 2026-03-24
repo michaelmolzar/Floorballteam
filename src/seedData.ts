@@ -1,10 +1,10 @@
 import { Player, TrainingPlan, CampusArticle, Termin, CoachNews } from './types';
 
 export const initialPlayers: Player[] = [
-  { id: '1', name: 'Max Mustermann', number: 10, type: 'field', stats: { gamesPlayed: 12, goals: 8, assists: 15, penaltyMinutes: 4 } },
-  { id: '2', name: 'Lukas Schmidt', number: 1, type: 'goalie', stats: { gamesPlayed: 12, savePercentage: 85.5, goalsAgainstAverage: 2.1 } },
-  { id: '3', name: 'Felix Weber', number: 7, type: 'field', stats: { gamesPlayed: 12, goals: 2, assists: 5, penaltyMinutes: 10 } },
-  { id: '4', name: 'Jan Müller', number: 23, type: 'field', stats: { gamesPlayed: 11, goals: 14, assists: 3, penaltyMinutes: 2 } },
+  { id: '1', name: 'Max Mustermann', number: 10, type: 'field' },
+  { id: '2', name: 'Lukas Schmidt', number: 1, type: 'goalie' },
+  { id: '3', name: 'Felix Weber', number: 7, type: 'field' },
+  { id: '4', name: 'Jan Müller', number: 23, type: 'field' },
 ];
 
 export const initialTraining: TrainingPlan[] = [

@@ -110,48 +110,6 @@ export default function Team({ players, setPlayers }: { players: Player[], setPl
                   </h2>
                 </div>
               </div>
-
-              {/* Stats Section */}
-              <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                <div className="flex justify-between items-center mb-4">
-                  <h4 className="font-bold text-white flex items-center gap-2"><Activity size={16} className="text-brand"/> Saison-Statistiken</h4>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Spiele */}
-                  <div className="bg-dark-bg p-3 rounded-lg border border-gray-700 text-center flex flex-col justify-center">
-                    <div className="text-[10px] text-gray-400 uppercase font-bold mb-1 tracking-wider">Spiele</div>
-                    <div className="text-2xl font-bold text-white">{selectedPlayer.stats.gamesPlayed}</div>
-                  </div>
-
-                  {/* Scorerpunkte (Calculated) */}
-                  <div className="bg-dark-bg p-3 rounded-lg border border-brand/30 text-center flex flex-col justify-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-brand/5"></div>
-                    <div className="relative z-10">
-                      <div className="text-[10px] text-brand uppercase font-bold mb-1 tracking-wider">Punkte</div>
-                      <div className="text-2xl font-bold text-brand">{(selectedPlayer.stats.goals || 0) + (selectedPlayer.stats.assists || 0)}</div>
-                    </div>
-                  </div>
-
-                  {/* Tore */}
-                  <div className="bg-dark-bg p-3 rounded-lg border border-gray-700 text-center flex flex-col justify-center">
-                    <div className="text-[10px] text-gray-400 uppercase font-bold mb-1 tracking-wider">Tore</div>
-                    <div className="text-xl font-bold text-white">{selectedPlayer.stats.goals || 0}</div>
-                  </div>
-
-                  {/* Assists */}
-                  <div className="bg-dark-bg p-3 rounded-lg border border-gray-700 text-center flex flex-col justify-center">
-                    <div className="text-[10px] text-gray-400 uppercase font-bold mb-1 tracking-wider">Assists</div>
-                    <div className="text-xl font-bold text-white">{selectedPlayer.stats.assists || 0}</div>
-                  </div>
-
-                  {/* Strafminuten */}
-                  <div className="bg-dark-bg p-3 rounded-lg border border-gray-700 text-center col-span-2 flex flex-col justify-center">
-                    <div className="text-[10px] text-gray-400 uppercase font-bold mb-1 tracking-wider">Strafminuten</div>
-                    <div className="text-xl font-bold text-white">{selectedPlayer.stats.penaltyMinutes || 0} <span className="text-sm text-gray-500 font-normal">Min</span></div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>

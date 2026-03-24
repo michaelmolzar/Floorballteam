@@ -78,6 +78,7 @@ export default function App() {
   const [termine, setTermine] = useState<Termin[]>([]);
   const [news, setNews] = useState<CoachNews[]>([]);
   const [appUsers, setAppUsers] = useState<AppUser[]>([]);
+  const [appSettings, setAppSettings] = useState<{logoUrl?: string}>({});
   
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -130,12 +131,19 @@ export default function App() {
       setNews(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CoachNews)));
     }, (error) => handleFirestoreError(error, OperationType.GET, 'news'));
 
+    const unsubSettings = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
+      if (docSnap.exists()) {
+        setAppSettings(docSnap.data() as {logoUrl?: string});
+      }
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'settings/general'));
+
     return () => {
       unsubPlayers();
       unsubCoaches();
       unsubCampus();
       unsubTermine();
       unsubNews();
+      unsubSettings();
     };
   }, []);
 
@@ -237,7 +245,7 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="Floorballbunnies Logo" className="h-12 w-auto object-contain" onError={(e) => { e.currentTarget.src = '/logo.svg' }} />
+              <img src={appSettings.logoUrl || "/logo.png"} alt="Floorballbunnies Logo" className="h-12 w-auto object-contain" onError={(e) => { if (!appSettings.logoUrl) e.currentTarget.src = '/logo.svg' }} />
               <div>
                 <h1 className="text-xl font-bold text-white tracking-tight">Floorballbunnies</h1>
                 <p className="text-xs text-brand uppercase font-semibold">Team Portal</p>
@@ -391,6 +399,7 @@ export default function App() {
             news={news} setNews={setNews}
             appUsers={appUsers}
             currentUserRole={userRole}
+            appSettings={appSettings}
           />
         )}
       </main>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Player, Coach, TrainingPlan, CampusArticle, Termin, CoachNews, AppUser, PlaybookItem } from '../types';
-import { Users, Calendar, Target, BookOpen, Plus, Edit2, Trash2, Save, X, Info, Image as ImageIcon, Megaphone, Database, Shield, Upload, FileText } from 'lucide-react';
+import { Users, Calendar, Target, BookOpen, Plus, Edit2, Trash2, Save, X, Info, Image as ImageIcon, Megaphone, Database, Shield, Upload, FileText, Settings } from 'lucide-react';
 import { doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
@@ -15,7 +15,8 @@ export default function Admin({
   termine, setTermine,
   news, setNews,
   appUsers,
-  currentUserRole
+  currentUserRole,
+  appSettings
 }: { 
   players: Player[], setPlayers: any,
   coaches: Coach[], setCoaches: any,
@@ -25,7 +26,8 @@ export default function Admin({
   termine: Termin[], setTermine: any,
   news: CoachNews[], setNews: any,
   appUsers: AppUser[],
-  currentUserRole: string
+  currentUserRole: string,
+  appSettings: {logoUrl?: string}
 }) {
   const [adminTab, setAdminTab] = useState('spieler');
   const [teamTab, setTeamTab] = useState<'players' | 'coaches'>('players');
@@ -101,6 +103,10 @@ export default function Admin({
   // Campus Edit State
   const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
   const [articleForm, setArticleForm] = useState<Partial<CampusArticle>>({});
+  const [uploadingCampusPdf, setUploadingCampusPdf] = useState(false);
+
+  // Settings State
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // --- Player Handlers ---
   const handleEditPlayer = (player: Player) => { setEditingPlayerId(player.id); setEditForm(player); };
@@ -127,7 +133,7 @@ export default function Admin({
   };
   const handleAddPlayer = async () => {
     try {
-      const newPlayer: Player = { id: Date.now().toString(), name: 'Neuer Spieler', number: 0, type: 'field', stats: { gamesPlayed: 0, goals: 0, assists: 0, penaltyMinutes: 0 } };
+      const newPlayer: Player = { id: Date.now().toString(), name: 'Neuer Spieler', number: 0, type: 'field' };
       await setDoc(doc(db, 'players', newPlayer.id), newPlayer);
       handleEditPlayer(newPlayer);
     } catch (error) {
@@ -499,6 +505,40 @@ export default function Admin({
       alert("Fehler beim Speichern des Artikels: " + (error instanceof Error ? error.message : String(error)));
     }
   };
+  const handleCampusPdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.type !== 'application/pdf') {
+      alert('Bitte nur PDF-Dateien hochladen.');
+      return;
+    }
+
+    if (file.size > 700 * 1024) {
+      alert('Die Datei ist zu groß. Maximal 700KB erlaubt.');
+      return;
+    }
+
+    setUploadingCampusPdf(true);
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        setArticleForm({ ...articleForm, pdfUrl: base64 });
+        setUploadingCampusPdf(false);
+      };
+      reader.onerror = (error) => {
+        console.error('Error reading PDF:', error);
+        alert('Fehler beim Lesen der PDF-Datei.');
+        setUploadingCampusPdf(false);
+      };
+    } catch (error) {
+      console.error('Error uploading PDF:', error);
+      alert('Fehler beim Hochladen der PDF: ' + (error instanceof Error ? error.message : String(error)));
+      setUploadingCampusPdf(false);
+    }
+  };
   const handleDeleteArticle = async (id: string) => {
     if (confirm('Artikel wirklich löschen?')) {
       try {
@@ -517,6 +557,43 @@ export default function Admin({
     } catch (error) {
       console.error("Error adding article:", error);
       alert("Fehler beim Hinzufügen des Artikels: " + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+
+  // --- Settings Handlers ---
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      alert('Bitte nur Bilder hochladen.');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Die Datei ist zu groß. Maximal 2MB erlaubt.');
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async () => {
+        const base64 = reader.result as string;
+        await setDoc(doc(db, 'settings', 'general'), { logoUrl: base64 }, { merge: true });
+        setUploadingLogo(false);
+        alert('Logo erfolgreich aktualisiert!');
+      };
+      reader.onerror = (error) => {
+        console.error('Error reading image:', error);
+        alert('Fehler beim Lesen des Bildes.');
+        setUploadingLogo(false);
+      };
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      alert('Fehler beim Hochladen des Logos: ' + (error instanceof Error ? error.message : String(error)));
+      setUploadingLogo(false);
     }
   };
 
@@ -566,9 +643,14 @@ export default function Admin({
                 <Megaphone size={18} /> News vom Trainer
               </button>
               {currentUserRole === 'admin' && (
-                <button onClick={() => setAdminTab('benutzer')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${adminTab === 'benutzer' ? 'bg-brand/20 text-brand' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}>
-                  <Shield size={18} /> Benutzerverwaltung
-                </button>
+                <>
+                  <button onClick={() => setAdminTab('benutzer')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${adminTab === 'benutzer' ? 'bg-brand/20 text-brand' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}>
+                    <Shield size={18} /> Benutzerverwaltung
+                  </button>
+                  <button onClick={() => setAdminTab('einstellungen')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${adminTab === 'einstellungen' ? 'bg-brand/20 text-brand' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}>
+                    <Settings size={18} /> App Einstellungen
+                  </button>
+                </>
               )}
             </nav>
             <div className="p-4 border-t border-gray-700 mt-4">
@@ -621,10 +703,6 @@ export default function Admin({
                           <th className="px-4 py-3">#</th>
                           <th className="px-4 py-3">Name</th>
                           <th className="px-4 py-3">Typ</th>
-                          <th className="px-4 py-3 text-center" title="Spiele">SP</th>
-                          <th className="px-4 py-3 text-center" title="Tore / Save Percentage">T / SV%</th>
-                          <th className="px-4 py-3 text-center" title="Assists">A</th>
-                          <th className="px-4 py-3 text-center" title="Strafminuten / Goals Against Average">SM / GAA</th>
                           <th className="px-4 py-3 text-right">Aktionen</th>
                         </tr>
                       </thead>
@@ -641,19 +719,6 @@ export default function Admin({
                                     <option value="goalie">Goalie</option>
                                   </select>
                                 </td>
-                                <td className="px-2 py-2"><input type="number" value={editForm.stats?.gamesPlayed || 0} onChange={e => setEditForm({...editForm, stats: {...editForm.stats!, gamesPlayed: +e.target.value}})} className="w-12 bg-gray-700 border border-gray-600 rounded px-1 py-1 text-white text-center focus:border-brand outline-none" /></td>
-                                {editForm.type === 'goalie' ? (
-                                  <>
-                                    <td className="px-2 py-2" colSpan={2}><input type="number" step="0.1" value={editForm.stats?.savePercentage || 0} onChange={e => setEditForm({...editForm, stats: {...editForm.stats!, savePercentage: +e.target.value}})} className="w-full bg-gray-700 border border-gray-600 rounded px-1 py-1 text-white text-center focus:border-brand outline-none" title="Save Percentage" /></td>
-                                    <td className="px-2 py-2"><input type="number" step="0.1" value={editForm.stats?.goalsAgainstAverage || 0} onChange={e => setEditForm({...editForm, stats: {...editForm.stats!, goalsAgainstAverage: +e.target.value}})} className="w-12 bg-gray-700 border border-gray-600 rounded px-1 py-1 text-white text-center focus:border-brand outline-none" title="GAA" /></td>
-                                  </>
-                                ) : (
-                                  <>
-                                    <td className="px-2 py-2"><input type="number" value={editForm.stats?.goals || 0} onChange={e => setEditForm({...editForm, stats: {...editForm.stats!, goals: +e.target.value}})} className="w-12 bg-gray-700 border border-gray-600 rounded px-1 py-1 text-white text-center focus:border-brand outline-none" /></td>
-                                    <td className="px-2 py-2"><input type="number" value={editForm.stats?.assists || 0} onChange={e => setEditForm({...editForm, stats: {...editForm.stats!, assists: +e.target.value}})} className="w-12 bg-gray-700 border border-gray-600 rounded px-1 py-1 text-white text-center focus:border-brand outline-none" /></td>
-                                    <td className="px-2 py-2"><input type="number" value={editForm.stats?.penaltyMinutes || 0} onChange={e => setEditForm({...editForm, stats: {...editForm.stats!, penaltyMinutes: +e.target.value}})} className="w-12 bg-gray-700 border border-gray-600 rounded px-1 py-1 text-white text-center focus:border-brand outline-none" /></td>
-                                  </>
-                                )}
                                 <td className="px-4 py-2 text-right">
                                   <button onClick={handleSavePlayer} className="text-green-400 hover:text-green-300 p-1"><Save size={18} /></button>
                                   <button onClick={() => setEditingPlayerId(null)} className="text-gray-400 hover:text-white p-1 ml-1"><X size={18} /></button>
@@ -664,19 +729,6 @@ export default function Admin({
                                 <td className="px-4 py-3 font-bold text-white">{player.number}</td>
                                 <td className="px-4 py-3 font-medium text-white">{player.name} {player.isCaptain && <span className="text-yellow-500 text-[10px] ml-1 border border-yellow-500/30 px-1 rounded">C</span>}</td>
                                 <td className="px-4 py-3">{player.type === 'goalie' ? 'Goalie' : 'Feldspieler'}</td>
-                                <td className="px-4 py-3 text-center text-gray-300">{player.stats?.gamesPlayed || 0}</td>
-                                {player.type === 'goalie' ? (
-                                  <>
-                                    <td className="px-4 py-3 text-center text-gray-300" colSpan={2} title="Save Percentage">{player.stats?.savePercentage || 0}%</td>
-                                    <td className="px-4 py-3 text-center text-gray-300" title="GAA">{player.stats?.goalsAgainstAverage || 0}</td>
-                                  </>
-                                ) : (
-                                  <>
-                                    <td className="px-4 py-3 text-center text-gray-300">{player.stats?.goals || 0}</td>
-                                    <td className="px-4 py-3 text-center text-gray-300">{player.stats?.assists || 0}</td>
-                                    <td className="px-4 py-3 text-center text-gray-300">{player.stats?.penaltyMinutes || 0}</td>
-                                  </>
-                                )}
                                 <td className="px-4 py-3 text-right">
                                   <button onClick={() => handleEditPlayer(player)} className="text-blue-400 hover:text-blue-300 p-1"><Edit2 size={16} /></button>
                                   <button onClick={() => handleDeletePlayer(player.id)} className="text-red-400 hover:text-red-300 p-1 ml-2"><Trash2 size={16} /></button>
@@ -1112,6 +1164,29 @@ export default function Admin({
                         />
                       </div>
                     </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs text-gray-400 mb-1">PDF Upload (Optional)</label>
+                      <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-700/50 cursor-pointer transition-colors relative">
+                        {uploadingCampusPdf ? (
+                          <span className="text-sm">Wird hochgeladen...</span>
+                        ) : articleForm.pdfUrl ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-green-400">PDF erfolgreich hochgeladen</span>
+                            <button onClick={() => setArticleForm({ ...articleForm, pdfUrl: undefined })} className="text-red-400 hover:text-red-300 ml-2">Entfernen</button>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="text-sm">Klicken zum Hochladen (PDF, max. 700KB)</span>
+                            <input 
+                              type="file" 
+                              accept="application/pdf" 
+                              onChange={handleCampusPdfUpload} 
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                            />
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex justify-end gap-2">
                     <button onClick={() => setEditingArticleId(null)} className="px-4 py-2 rounded text-gray-300 hover:bg-gray-700">Abbrechen</button>
@@ -1125,6 +1200,7 @@ export default function Admin({
                       <tr>
                         <th className="px-4 py-3">Titel</th>
                         <th className="px-4 py-3">Kategorie</th>
+                        <th className="px-4 py-3 text-center">PDF</th>
                         <th className="px-4 py-3 text-right">Aktionen</th>
                       </tr>
                     </thead>
@@ -1148,6 +1224,9 @@ export default function Admin({
                               onBlur={(e) => updateDoc(doc(db, 'campus', article.id), { category: e.target.value })}
                               className="bg-gray-700 border border-transparent hover:border-gray-500 focus:border-brand rounded px-2 py-1 text-[10px] font-bold uppercase text-gray-300 outline-none transition-colors w-32"
                             />
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {article.pdfUrl ? <span className="text-green-400 font-bold text-xs">JA</span> : <span className="text-gray-600 text-xs">-</span>}
                           </td>
                           <td className="px-4 py-3 text-right">
                             <button onClick={() => handleEditArticle(article)} className="text-blue-400 hover:text-blue-300 p-1"><Edit2 size={16} /></button>
@@ -1272,6 +1351,60 @@ export default function Admin({
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* ================= EINSTELLUNGEN ================= */}
+          {adminTab === 'einstellungen' && currentUserRole === 'admin' && (
+            <div className="bg-dark-card border border-gray-700 rounded-xl p-6 shadow-lg">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-white">App Einstellungen</h3>
+              </div>
+
+              <div className="space-y-8">
+                <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+                  <h4 className="text-lg font-bold text-white mb-2">Logo aktualisieren</h4>
+                  <p className="text-sm text-gray-400 mb-6">Lade ein neues Logo für die App hoch. Es wird oben links im Header angezeigt. Empfohlenes Format: PNG oder SVG mit transparentem Hintergrund.</p>
+                  
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                    <div className="w-32 h-32 bg-gray-900 rounded-lg border border-gray-700 flex items-center justify-center overflow-hidden shrink-0 p-2">
+                      <img src={appSettings.logoUrl || "/logo.png"} alt="Aktuelles Logo" className="max-w-full max-h-full object-contain" onError={(e) => { if (!appSettings.logoUrl) e.currentTarget.src = '/logo.svg' }} id="admin-logo-preview" />
+                    </div>
+                    
+                    <div className="flex-1 w-full">
+                      <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-700/50 cursor-pointer transition-colors relative">
+                        {uploadingLogo ? (
+                          <span className="text-sm font-medium">Wird hochgeladen...</span>
+                        ) : (
+                          <>
+                            <Upload size={24} className="mb-2 text-gray-500" />
+                            <span className="text-sm font-medium text-white mb-1">Klicken zum Hochladen</span>
+                            <span className="text-xs text-gray-500">PNG, JPG, SVG (max. 2MB)</span>
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              onChange={(e) => {
+                                handleLogoUpload(e);
+                                // Optimistic preview update
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = (e) => {
+                                    const img = document.getElementById('admin-logo-preview') as HTMLImageElement;
+                                    if (img && e.target?.result) img.src = e.target.result as string;
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }} 
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                            />
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}

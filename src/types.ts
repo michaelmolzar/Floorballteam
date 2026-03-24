@@ -6,22 +6,12 @@ export type Coach = {
   phone?: string;
 };
 
-export type PlayerStats = {
-  gamesPlayed: number;
-  goals?: number;
-  assists?: number;
-  penaltyMinutes?: number;
-  savePercentage?: number;
-  goalsAgainstAverage?: number;
-};
-
 export type Player = {
   id: string;
   name: string;
   number: number;
   type: 'goalie' | 'field';
   isCaptain?: boolean;
-  stats: PlayerStats;
 };
 
 export type Notification = {
@@ -74,6 +64,7 @@ export type CampusArticle = {
   content: string;
   iconType: 'apple' | 'activity' | 'book';
   color: 'yellow' | 'gray' | 'black';
+  pdfUrl?: string;
 };
 
 export type AppUser = {
@@ -81,4 +72,8 @@ export type AppUser = {
   email: string;
   name: string;
   role: 'admin' | 'coach' | 'player' | 'guest';
+};
+
+export type AppSettings = {
+  logoUrl?: string;
 };

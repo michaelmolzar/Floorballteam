@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Apple, Activity, BookOpen, ArrowRight, X } from 'lucide-react';
+import { Apple, Activity, BookOpen, ArrowRight, X, Download, Eye } from 'lucide-react';
 import { CampusArticle } from '../types';
 
 const iconMap: Record<string, any> = {
@@ -16,6 +16,7 @@ const colorMap: Record<string, string> = {
 
 export default function Campus({ articles }: { articles: CampusArticle[] }) {
   const [selectedArticle, setSelectedArticle] = useState<CampusArticle | null>(null);
+  const [selectedPdf, setSelectedPdf] = useState<{url: string, title: string} | null>(null);
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -70,6 +71,28 @@ export default function Campus({ articles }: { articles: CampusArticle[] }) {
               <div className="whitespace-pre-wrap text-gray-300 leading-relaxed">
                 {selectedArticle.content || 'Kein Inhalt verfügbar.'}
               </div>
+              
+              {selectedArticle.pdfUrl && (
+                <div className="mt-8 pt-6 border-t border-gray-700">
+                  <h4 className="text-white font-bold mb-4">Zugehöriges Dokument</h4>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setSelectedPdf({url: selectedArticle.pdfUrl!, title: selectedArticle.title})} 
+                      className="flex-1 bg-brand hover:bg-brand-dark text-white py-2 rounded-lg font-medium transition-colors text-sm flex items-center justify-center"
+                    >
+                      <Eye size={16} className="mr-2" /> PDF Ansehen
+                    </button>
+                    <a 
+                      href={selectedArticle.pdfUrl} 
+                      download={`${selectedArticle.title}.pdf`} 
+                      className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center"
+                      title="Herunterladen"
+                    >
+                      <Download size={16} />
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="p-4 border-t border-gray-700 bg-gray-800/30 flex justify-end">
               <button 
@@ -78,6 +101,36 @@ export default function Campus({ articles }: { articles: CampusArticle[] }) {
               >
                 Schließen
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PDF Viewer Modal */}
+      {selectedPdf && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-dark-card border border-gray-700 rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl relative overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-gray-700 bg-gray-800/50">
+              <h3 className="text-xl font-bold text-white truncate pr-4">{selectedPdf.title}</h3>
+              <div className="flex items-center gap-3 shrink-0">
+                <a 
+                  href={selectedPdf.url} 
+                  download={`${selectedPdf.title}.pdf`}
+                  className="flex items-center gap-2 text-sm bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded transition-colors"
+                >
+                  <Download size={16} /> <span className="hidden sm:inline">Download</span>
+                </a>
+                <button onClick={() => setSelectedPdf(null)} className="text-gray-400 hover:text-white transition-colors p-1 bg-gray-800 hover:bg-gray-700 rounded-full">
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+            <div className="flex-grow bg-gray-900 w-full h-full relative">
+              <iframe 
+                src={`${selectedPdf.url}#toolbar=0`} 
+                className="w-full h-full border-0"
+                title={selectedPdf.title}
+              />
             </div>
           </div>
         </div>
