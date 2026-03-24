@@ -77,7 +77,73 @@ const AwayTrips: React.FC<AwayTripsProps> = ({ userRole, players }) => {
 
   const getPlayerName = (id: string) => {
     const player = players.find(p => p.id === id);
-    return player ? player.name : 'Unbekannt';
+    return player ? player.name : id;
+  };
+
+  const renderListEditor = (
+    title: string,
+    icon: React.ReactNode,
+    listKey: 'roster' | 'carTravelers' | 'trainTravelers' | 'hotelGuests'
+  ) => {
+    const trip = editingTrip!;
+    const currentList = trip[listKey];
+    const customEntries = currentList.filter(id => !players.some(p => p.id === id));
+
+    return (
+      <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 flex flex-col h-full">
+        <h4 className="font-bold text-white mb-3 flex items-center gap-2">{icon} {title}</h4>
+        <div className="space-y-2 overflow-y-auto pr-2 custom-scrollbar flex-1 mb-3 min-h-[150px]">
+          {players.map(p => (
+            <label key={`${listKey}-${p.id}`} className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white">
+              <input 
+                type="checkbox" 
+                checked={currentList.includes(p.id)}
+                onChange={(e) => {
+                  const newList = e.target.checked 
+                    ? [...currentList, p.id] 
+                    : currentList.filter(id => id !== p.id);
+                  setEditingTrip({...trip, [listKey]: newList});
+                }}
+                className="rounded border-gray-600 text-brand focus:ring-brand bg-gray-700"
+              />
+              {p.name}
+            </label>
+          ))}
+          {customEntries.map(name => (
+            <label key={`custom-${listKey}-${name}`} className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white">
+              <input 
+                type="checkbox" 
+                checked={true}
+                onChange={(e) => {
+                  if (!e.target.checked) {
+                    setEditingTrip({...trip, [listKey]: currentList.filter(id => id !== name)});
+                  }
+                }}
+                className="rounded border-gray-600 text-brand focus:ring-brand bg-gray-700"
+              />
+              {name} (Gast)
+            </label>
+          ))}
+        </div>
+        <div className="flex gap-2 mt-auto pt-2 border-t border-gray-700/50">
+          <input 
+            type="text" 
+            placeholder="Name hinzufügen..." 
+            className="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-sm text-white focus:border-brand outline-none"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && e.currentTarget.value.trim() !== '') {
+                e.preventDefault();
+                const name = e.currentTarget.value.trim();
+                if (!currentList.includes(name)) {
+                  setEditingTrip({...trip, [listKey]: [...currentList, name]});
+                }
+                e.currentTarget.value = '';
+              }
+            }}
+          />
+        </div>
+      </div>
+    );
   };
 
   if (isCreating || editingTrip) {
@@ -138,97 +204,10 @@ const AwayTrips: React.FC<AwayTripsProps> = ({ userRole, players }) => {
             <h3 className="text-lg font-bold text-white mb-4">Personen-Zuteilung</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Kader */}
-              <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                <h4 className="font-bold text-white mb-3 flex items-center gap-2"><Users size={16} className="text-brand" /> Kader</h4>
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                  {players.map(p => (
-                    <label key={`roster-${p.id}`} className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white">
-                      <input 
-                        type="checkbox" 
-                        checked={trip.roster.includes(p.id)}
-                        onChange={(e) => {
-                          const newRoster = e.target.checked 
-                            ? [...trip.roster, p.id] 
-                            : trip.roster.filter(id => id !== p.id);
-                          setEditingTrip({...trip, roster: newRoster});
-                        }}
-                        className="rounded border-gray-600 text-brand focus:ring-brand bg-gray-700"
-                      />
-                      {p.name}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Auto */}
-              <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                <h4 className="font-bold text-white mb-3 flex items-center gap-2"><Car size={16} className="text-blue-400" /> Auto</h4>
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                  {players.map(p => (
-                    <label key={`car-${p.id}`} className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white">
-                      <input 
-                        type="checkbox" 
-                        checked={trip.carTravelers.includes(p.id)}
-                        onChange={(e) => {
-                          const newTravelers = e.target.checked 
-                            ? [...trip.carTravelers, p.id] 
-                            : trip.carTravelers.filter(id => id !== p.id);
-                          setEditingTrip({...trip, carTravelers: newTravelers});
-                        }}
-                        className="rounded border-gray-600 text-brand focus:ring-brand bg-gray-700"
-                      />
-                      {p.name}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Zug */}
-              <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                <h4 className="font-bold text-white mb-3 flex items-center gap-2"><Train size={16} className="text-green-400" /> Zug</h4>
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                  {players.map(p => (
-                    <label key={`train-${p.id}`} className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white">
-                      <input 
-                        type="checkbox" 
-                        checked={trip.trainTravelers.includes(p.id)}
-                        onChange={(e) => {
-                          const newTravelers = e.target.checked 
-                            ? [...trip.trainTravelers, p.id] 
-                            : trip.trainTravelers.filter(id => id !== p.id);
-                          setEditingTrip({...trip, trainTravelers: newTravelers});
-                        }}
-                        className="rounded border-gray-600 text-brand focus:ring-brand bg-gray-700"
-                      />
-                      {p.name}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Hotel */}
-              <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                <h4 className="font-bold text-white mb-3 flex items-center gap-2"><Hotel size={16} className="text-purple-400" /> Hotel</h4>
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                  {players.map(p => (
-                    <label key={`hotel-${p.id}`} className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white">
-                      <input 
-                        type="checkbox" 
-                        checked={trip.hotelGuests.includes(p.id)}
-                        onChange={(e) => {
-                          const newGuests = e.target.checked 
-                            ? [...trip.hotelGuests, p.id] 
-                            : trip.hotelGuests.filter(id => id !== p.id);
-                          setEditingTrip({...trip, hotelGuests: newGuests});
-                        }}
-                        className="rounded border-gray-600 text-brand focus:ring-brand bg-gray-700"
-                      />
-                      {p.name}
-                    </label>
-                  ))}
-                </div>
-              </div>
+              {renderListEditor('Kader', <Users size={16} className="text-brand" />, 'roster')}
+              {renderListEditor('Auto', <Car size={16} className="text-blue-400" />, 'carTravelers')}
+              {renderListEditor('Zug', <Train size={16} className="text-green-400" />, 'trainTravelers')}
+              {renderListEditor('Hotel', <Hotel size={16} className="text-purple-400" />, 'hotelGuests')}
             </div>
           </div>
 
