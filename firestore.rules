@@ -108,5 +108,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    match /awayTrips/{tripId} {
+      allow read: if isPlayerOrHigher();
+      allow write: if isCoach();
+    }
   }
 }

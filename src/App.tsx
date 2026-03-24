@@ -6,6 +6,7 @@ import { auth, db } from './firebase';
 import Dashboard from './components/Dashboard';
 import Team from './components/Team';
 import Termine from './components/Termine';
+import AwayTrips from './components/AwayTrips';
 import Taktik from './components/Taktik';
 import Campus from './components/Campus';
 import Admin from './components/Admin';
@@ -228,6 +229,7 @@ export default function App() {
 
   if (userRole === 'admin' || userRole === 'coach' || userRole === 'player') {
     tabs.splice(3, 0, { id: 'taktik', label: 'Taktik & Training' });
+    tabs.splice(4, 0, { id: 'auswaertsfahrten', label: 'Auswärtsfahrten' });
   }
 
   if (userRole === 'admin' || userRole === 'coach') {
@@ -387,6 +389,7 @@ export default function App() {
         {activeTab === 'team' && <Team players={players} setPlayers={setPlayers} />}
         {activeTab === 'termine' && <Termine termine={termine} />}
         {activeTab === 'taktik' && <Taktik trainingPlans={trainingPlans} playbookItems={playbookItems} />}
+        {activeTab === 'auswaertsfahrten' && <AwayTrips userRole={userRole} players={players} />}
         {activeTab === 'campus' && <Campus articles={campusArticles} />}
         {activeTab === 'admin' && (
           <Admin 

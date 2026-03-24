@@ -77,3 +77,19 @@ export type AppUser = {
 export type AppSettings = {
   logoUrl?: string;
 };
+
+export type AwayTrip = {
+  id: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  arenaAddress: string;
+  trainOutboundTime: string;
+  trainReturnTime: string;
+  hotelName: string;
+  hotelAddress: string;
+  restaurantInfo: string;
+  roster: string[]; // Player IDs
+  carTravelers: string[]; // Player IDs
+  trainTravelers: string[]; // Player IDs
+  hotelGuests: string[]; // Player IDs
+};
